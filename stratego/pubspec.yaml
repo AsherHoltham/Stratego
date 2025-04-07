@@ -29,3 +29,4 @@ flutter:
     - lib/assets/flag.png
     - lib/assets/grassblock.png
     - lib/assets/waterblock.png
+    - lib/assets/general.png

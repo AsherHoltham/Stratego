@@ -3,8 +3,11 @@ import 'game_data.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
 import "dart:io";
+import "dart:math";
 
-const port = 52803;
+const port = 55722;
+
+BoardData testData = BoardData();
 
 class Player {
   HttpClient? client;
@@ -83,6 +86,7 @@ class MyApp extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              PixelGrid(boardData: testData.mPieces),
               Expanded(
                 child: TextField(
                   controller: textController,
