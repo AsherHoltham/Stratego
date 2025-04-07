@@ -5,7 +5,7 @@ import 'dart:convert';
 import "dart:io";
 import "dart:math";
 
-const port = 64369;
+const port = 61895;
 
 enum PlayerState { choosing, setupboard, opponentTurn, myTurn }
 
@@ -13,22 +13,23 @@ class Player {
   HttpClient? client;
   Map<String, String> mChatLog = {};
   bool first;
-  Player(this.client, this.mChatLog, this.first);
+  bool choosen;
+  Player(this.client, this.mChatLog, this.first, this.choosen);
 }
 
 class PlayerController extends Cubit<Player> {
-  PlayerController() : super(Player(null, {}, true)) {
+  PlayerController() : super(Player(null, {}, true, false)) {
     connect();
   }
   void updateTurn(bool first) {
-    emit(Player(state.client, state.mChatLog, first));
+    emit(Player(state.client, state.mChatLog, first, true));
   }
 
   Future<void> connect() async {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client, {}, state.first));
+    emit(Player(client, {}, state.first, state.choosen));
   }
 
   Future<Map<String, String>> getServerData() async {
@@ -47,7 +48,7 @@ class PlayerController extends Cubit<Player> {
       Map<String, String> chatMap = contextData.map(
         (key, value) => MapEntry(key, value.toString()),
       );
-      emit(Player(state.client, chatMap, state.first));
+      emit(Player(state.client, chatMap, state.first, state.choosen));
       return chatMap;
     } catch (e) {
       print("Error fetching server data: $e");
@@ -62,7 +63,8 @@ class PlayerController extends Cubit<Player> {
     try {
       final request = await client.postUrl(url);
       // Create a JSON payload. You can modify the 'user' field as needed.
-      final payload = jsonEncode({"message": message, "user": "Player"});
+      final String userName = state.first ? "Player 1" : "Player 2";
+      final payload = jsonEncode({"message": message, "user": userName});
       request.headers.contentType = ContentType.json;
       request.write(payload);
       final response = await request.close();
@@ -74,19 +76,60 @@ class PlayerController extends Cubit<Player> {
   }
 }
 
+class RouterApp {
+  final PlayerController controller;
+  RouterApp({required this.controller});
+
+  Route genRoute(RouteSettings settings) {
+    if (settings.name == "/" || settings.name == null) {
+      return MaterialPageRoute(
+        builder:
+            (_) => BlocProvider.value(
+              value: controller,
+              child: const GameLaunch(),
+            ),
+      );
+    } else if (settings.name == "game") {
+      return MaterialPageRoute(
+        builder:
+            (_) =>
+                BlocProvider.value(value: controller, child: const GamePage()),
+      );
+    } else if (settings.name == "chat") {
+      return MaterialPageRoute(
+        builder:
+            (_) =>
+                BlocProvider.value(value: controller, child: const ChatPage()),
+      );
+    } else {
+      // Fallback to Route1 if an unknown route is requested.
+      return MaterialPageRoute(
+        builder:
+            (_) =>
+                BlocProvider.value(value: controller, child: const GamePage()),
+      );
+    }
+  }
+}
+
 void main() => runApp(
-  BlocProvider(create: (context) => PlayerController(), child: const MyApp()),
+  BlocProvider(create: (context) => PlayerController(), child: MyApp()),
 );
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  final PlayerController controller = PlayerController();
+
+  // Create the router, passing the same cubit.
+  late final RouterApp router = RouterApp(controller: controller);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'My Game',
-      // The Navigator is provided by this MaterialApp.
-      home: const GameLaunch(),
+      title: 'Game App',
+      onGenerateRoute: router.genRoute,
+      home: BlocProvider.value(value: controller, child: const GameLaunch()),
     );
   }
 }
@@ -101,26 +144,20 @@ class GameLaunch extends StatelessWidget {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FloatingActionButton(
+          ElevatedButton(
             onPressed: () {
               playerController.updateTurn(true);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GamePage()),
-              );
+              Navigator.of(context).pushNamed("game");
             },
-            child: const Text("Tap to be first player"),
+            child: const Text("First"),
           ),
           const SizedBox(height: 20),
-          FloatingActionButton(
+          ElevatedButton(
             onPressed: () {
               playerController.updateTurn(false);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GamePage()),
-              );
+              Navigator.of(context).pushNamed("game");
             },
-            child: const Text("Tap to be second player"),
+            child: const Text("Second"),
           ),
         ],
       ),
@@ -133,17 +170,14 @@ class GamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Remove nested MaterialApp
     return Scaffold(
       appBar: AppBar(title: const Text("Game Page")),
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FloatingActionButton(
+          ElevatedButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatPage()),
-              );
+              Navigator.of(context).pushReplacementNamed("chat");
             },
             child: const Text("Chat"),
           ),
@@ -159,22 +193,19 @@ class ChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playerController = context.read<PlayerController>();
-    final TextEditingController textController = TextEditingController();
+    final textController = TextEditingController();
 
-    // Remove nested MaterialApp
     return Scaffold(
-      appBar: AppBar(title: const Text("Player Chat")),
+      appBar: AppBar(title: const Text("Chat Page")),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          FloatingActionButton(
+          ElevatedButton(
             onPressed: () {
-              Navigator.push(
+              Navigator.of(
                 context,
-                MaterialPageRoute(builder: (context) => const GamePage()),
-              );
+              ).pushReplacementNamed("game"); // Navigate back to GamePage
             },
-            child: const Text("Back to Game"),
+            child: const Text("Game"),
           ),
           SizedBox(
             height: 300,
