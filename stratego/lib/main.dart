@@ -5,17 +5,16 @@ import 'dart:convert';
 import "dart:io";
 import "dart:math";
 
-const port = 55722;
-
-BoardData testData = BoardData();
+const port = 64905;
 
 class Player {
   HttpClient? client;
-  Player(this.client);
+  Map<int, String> mChatLog = {};
+  Player(this.client, this.mChatLog);
 }
 
 class PlayerController extends Cubit<Player> {
-  PlayerController() : super(Player(null)) {
+  PlayerController() : super(Player(null, {})) {
     connect();
   }
 
@@ -23,7 +22,7 @@ class PlayerController extends Cubit<Player> {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client));
+    emit(Player(client, {}));
   }
 
   Future<Map<int, String>> getServerData() async {
@@ -41,6 +40,7 @@ class PlayerController extends Cubit<Player> {
         chatMap[int.tryParse(key) ?? 0] =
             "User: ${value['user']}, Message: ${value['message']}";
       });
+      emit(Player(state.client, chatMap));
       return chatMap;
     } catch (e) {
       print("Error fetching server data: $e");
@@ -86,7 +86,7 @@ class MyApp extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              PixelGrid(boardData: testData.mPieces),
+              Row(),
               Expanded(
                 child: TextField(
                   controller: textController,
@@ -97,6 +97,7 @@ class MyApp extends StatelessWidget {
               FloatingActionButton(
                 onPressed: () {
                   playerController.sendMessage(textController.text);
+
                   textController.clear();
                 },
                 child: const Icon(Icons.send),
@@ -105,29 +106,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class BoardState {
-  final List<int> mBoardLayout;
-  BoardState(this.mBoardLayout);
-}
-
-class BoardController extends Cubit<BoardState> {
-  BoardController() : super(BoardState(List.generate(100, (index) => 0)));
-
-  void update(List<int> newBoard) {
-    emit(BoardState(newBoard));
-  }
-}
-
-// ignore: use_key_in_widget_constructors
-class Board extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<BoardController, BoardState>(
-      builder: (context, state) => Container(),
     );
   }
 }

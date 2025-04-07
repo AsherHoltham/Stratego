@@ -30,7 +30,7 @@ void main() async {
   final port = int.parse(portString);
   print('Server will run on port: $port');
   var handler =
-      const Pipeline().addMiddleware(logRequests()).addHandler(_echoRequest);
+      const Pipeline().addMiddleware(logRequests()).addHandler(_gameController);
 
   var server = await shelf_io.serve(handler, 'localhost', port);
 
@@ -40,5 +40,19 @@ void main() async {
   print('Serving at http://${server.address.host}:${server.port}');
 }
 
-Response _echoRequest(Request request) =>
-    Response.ok('Request for "${request.url}"');
+Future<Response> _gameController(Request request) async {
+  // If the method is GET, read the query parameters.
+  if (request.method == 'GET') {
+    final queryParams = request.url.queryParameters;
+    return Response.ok('Received GET with query parameters: $queryParams');
+  }
+  // If the method is POST, read the body.
+  else if (request.method == 'POST') {
+    final payload = await request.readAsString();
+    return Response.ok('Received POST with payload: $payload');
+  }
+  // For any other methods, return a 405 Method Not Allowed.
+  else {
+    return Response(405, body: 'Method not allowed');
+  }
+}
