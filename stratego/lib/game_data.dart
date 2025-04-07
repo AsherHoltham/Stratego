@@ -5,11 +5,24 @@ Color greyColor = Color(0xff9f9b96);
 Color redColor = Color(0xffb52525);
 
 Map<int, Widget> assetMap = {
-  10: Image.asset('lib/assets/general.png', width: 9, height: 9),
-  0: Image.asset('lib/assets/grassblock.png', width: 9, height: 9),
-  11: Image.asset('lib/assets/waterblock.png', width: 9, height: 9),
-  12: Image.asset('lib/assets/bomb.png', width: 9, height: 9),
-  13: Image.asset('lib/assets/flag.png', width: 9, height: 9),
+  10: Image.asset('lib/assets/general.png', width: 45, height: 45),
+  0: Image.asset('lib/assets/grassblock.png', width: 45, height: 45),
+  11: Image.asset('lib/assets/watertile.png', width: 45, height: 45),
+  12: Image.asset('lib/assets/bomb.png', width: 45, height: 45),
+  13: Image.asset('lib/assets/flag.png', width: 45, height: 45),
+};
+
+Map<int, int> playerPieces = {
+  10: 1,
+  9: 1,
+  8: 2,
+  7: 3,
+  6: 4,
+  5: 4,
+  4: 4,
+  3: 5,
+  2: 8,
+  1: 1,
 };
 
 class BoardData {
@@ -20,10 +33,10 @@ class BoardData {
     mPieces[53] = 11;
     mPieces[56] = 11;
     mPieces[57] = 11;
-    mPieces[62] = 11;
-    mPieces[63] = 11;
-    mPieces[66] = 11;
-    mPieces[67] = 11;
+    mPieces[42] = 11;
+    mPieces[43] = 11;
+    mPieces[46] = 11;
+    mPieces[47] = 11;
   }
 }
 
@@ -114,9 +127,14 @@ class NineByNinePixelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return mSprite > 0 && mSprite < 10
-        ? SoldierTile(mSprite)
-        : SizedBox(width: 9, height: 9, child: assetMap[mSprite]);
+    return Center(
+      child:
+          mSprite == 11
+              ? SizedBox(child: assetMap[11])
+              : SizedBox(child: assetMap[0]),
+      //     ? SizedBox(width: 9, height: 9, child: SoldierTile(mSprite))
+      //     : SizedBox(width: 9, height: 9, child: SoldierTile(1)),
+    );
   }
 }
 
@@ -129,8 +147,8 @@ class PixelGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.count(
       crossAxisCount: 10,
-      mainAxisSpacing: 1,
-      crossAxisSpacing: 1,
+      mainAxisSpacing: 0,
+      crossAxisSpacing: 0,
       shrinkWrap: true,
       children: List.generate(100, (index) {
         return NineByNinePixelWidget(boardData[index]);
@@ -139,32 +157,29 @@ class PixelGrid extends StatelessWidget {
   }
 }
 
-// class Dice1 extends StatelessWidget
-// { final int id;
-//   Dice1(this.id, {super.key});
+BoardData testData = BoardData();
 
-//   static final randy = Random();
-//   late BuildContext bc;
-//   @override
-//   Widget build( BuildContext context )
-//   { bc = context;
-//     List<Dot> dots = [];
-//     DiceCubit dCubit = BlocProvider.of<DiceCubit>(context);
-//     DiceState dState = dCubit.state;
-//     int face = dState.face;
-//     bool holding = dState.hold;
-//     if ( face>1 ) // upper left and lower right
-//     { dots.add( Dot(top:10,left:20) );
-//       dots.add( Dot(top:70, left:70) );
-//     }
-//     if ( face>3 ) // other corners
-//     { dots.add( Dot(top:10,left:70) );
-//       dots.add( Dot(top:70, left:20) );
-//     }
-//     if ( face==6 ) // middle side dots
-//     { dots.add( Dot(top:40,left:20) );
-//       dots.add( Dot(top:40, left:70) );
-//     }
-//     if ( face==1 || face==3 || face==5 ) // center dot
-//     { dots.add( Dot(top:40,left:45) );
-//     }
+void main() => runApp(const TestApp());
+
+class TestApp extends StatelessWidget {
+  const TestApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final int gridSize = 10;
+    final double cellSize = 45.0;
+    final double totalSize = gridSize * cellSize;
+
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: totalSize,
+            height: totalSize,
+            child: PixelGrid(boardData: testData.mPieces),
+          ),
+        ),
+      ),
+    );
+  }
+}

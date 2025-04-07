@@ -28,5 +28,5 @@ flutter:
     - lib/assets/bomb.png
     - lib/assets/flag.png
     - lib/assets/grassblock.png
-    - lib/assets/waterblock.png
+    - lib/assets/watertile.png
     - lib/assets/general.png
