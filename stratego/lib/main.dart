@@ -5,11 +5,11 @@ import 'dart:convert';
 import "dart:io";
 import "dart:math";
 
-const port = 64905;
+const port = 64369;
 
 class Player {
   HttpClient? client;
-  Map<int, String> mChatLog = {};
+  Map<String, String> mChatLog = {};
   Player(this.client, this.mChatLog);
 }
 
@@ -25,7 +25,7 @@ class PlayerController extends Cubit<Player> {
     emit(Player(client, {}));
   }
 
-  Future<Map<int, String>> getServerData() async {
+  Future<Map<String, String>> getServerData() async {
     final client = state.client;
     if (client == null) return {};
     final url = Uri.parse("http://localhost:$port");
@@ -33,13 +33,14 @@ class PlayerController extends Cubit<Player> {
       final request = await client.getUrl(url);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
-      // The server returns a JSON map of chat entries.
+      // The server returns a JSON object like:
+      // { "headers": "chat", "context": { "key1": "value1", ... } }
       final Map<String, dynamic> data = jsonDecode(responseBody);
-      Map<int, String> chatMap = {};
-      data.forEach((key, value) {
-        chatMap[int.tryParse(key) ?? 0] =
-            "User: ${value['user']}, Message: ${value['message']}";
-      });
+      final Map<String, dynamic> contextData = data['context'];
+      // Convert contextData to Map<String, String>
+      Map<String, String> chatMap = contextData.map(
+        (key, value) => MapEntry(key, value.toString()),
+      );
       emit(Player(state.client, chatMap));
       return chatMap;
     } catch (e) {
@@ -82,28 +83,54 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text("Player Chat")),
-        body: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(),
-              Expanded(
-                child: TextField(
-                  controller: textController,
-                  autofocus: true,
-                  decoration: const InputDecoration(filled: true),
+        body: Column(
+          // Removed Center here
+          mainAxisAlignment:
+              MainAxisAlignment.start, // Align children at the top
+          children: [
+            SizedBox(
+              height: 300,
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: BlocBuilder<PlayerController, Player>(
+                  builder: (context, state) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:
+                          state.mChatLog.entries
+                              .map((entry) {
+                                return Text(
+                                  '${DateTime.now().toIso8601String()}: ${entry.key}',
+                                );
+                              })
+                              .toList()
+                              .reversed
+                              .toList(),
+                    );
+                  },
                 ),
               ),
-              FloatingActionButton(
-                onPressed: () {
-                  playerController.sendMessage(textController.text);
-
-                  textController.clear();
-                },
-                child: const Icon(Icons.send),
-              ),
-            ],
-          ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: textController,
+                    autofocus: true,
+                    decoration: const InputDecoration(filled: true),
+                  ),
+                ),
+                FloatingActionButton(
+                  onPressed: () {
+                    playerController.sendMessage(textController.text);
+                    textController.clear();
+                    playerController.getServerData();
+                  },
+                  child: const Icon(Icons.send),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
