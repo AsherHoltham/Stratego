@@ -40,85 +40,26 @@ class BoardData {
   }
 }
 
-class Dot extends Positioned {
-  Dot({super.key, super.top, super.left})
-    : super(
-        child: Container(
-          height: 2,
-          width: 2,
-          decoration: BoxDecoration(color: redColor, shape: BoxShape.circle),
-        ),
-      );
-}
-
 class SoldierTile extends StatelessWidget {
   final int mIndex;
-  final List<Dot> mDots = [];
-  SoldierTile(this.mIndex, {super.key}) {
-    if (mIndex % 2 == 1) {
-      mDots.add(Dot(top: 4, left: 4)); // middle dot
-    }
-    if (mIndex == 3 ||
-        mIndex == 8 ||
-        mIndex == 9 ||
-        mIndex == 7) // other corners
-    {
-      mDots.add(Dot(top: 1, left: 4));
-      mDots.add(Dot(top: 7, left: 4));
-    }
-    if (mIndex == 9) // other corners
-    {
-      mDots.add(Dot(top: 4, left: 1));
-      mDots.add(Dot(top: 4, left: 7));
-    }
-    if (mIndex == 8 || mIndex == 6) // middle side dots
-    {
-      mDots.add(Dot(top: 4, left: 3));
-      mDots.add(Dot(top: 4, left: 6));
-    }
-    if (mIndex == 9 || mIndex == 8 || mIndex == 5 || mIndex == 7) //corners
-    {
-      mDots.add(Dot(top: 1, left: 1));
-      mDots.add(Dot(top: 1, left: 7));
-      mDots.add(Dot(top: 7, left: 1));
-      mDots.add(Dot(top: 7, left: 7));
-    }
-    if (mIndex == 4) //corners
-    {
-      mDots.add(Dot(top: 3, left: 3));
-      mDots.add(Dot(top: 3, left: 6));
-      mDots.add(Dot(top: 6, left: 3));
-      mDots.add(Dot(top: 6, left: 6));
-    }
-    if (mIndex == 2 || mIndex == 6 || mIndex == 8) //corners
-    {
-      mDots.add(Dot(top: 4, left: 3));
-      mDots.add(Dot(top: 4, left: 6));
-    }
+  const SoldierTile(this.mIndex, {super.key});
 
-    if (mIndex == 6) //corners
-    {
-      mDots.add(Dot(top: 1, left: 3));
-      mDots.add(Dot(top: 1, left: 6));
-      mDots.add(Dot(top: 7, left: 3));
-      mDots.add(Dot(top: 7, left: 6));
-    }
-  }
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(width: 1),
-        color: (tanColor),
+      decoration: BoxDecoration(color: (tanColor)),
+      height: 45,
+      width: 45,
+      child: Text(
+        " $mIndex",
+        style: TextStyle(
+          fontSize: 35, // Adjust font size as needed
+          color: redColor,
+        ),
       ),
-      height: 9,
-      width: 9,
-      child: Stack(children: mDots),
     );
   }
 }
-
-// Make ambient tile
 
 class NineByNinePixelWidget extends StatelessWidget {
   final int mSprite;
@@ -129,11 +70,9 @@ class NineByNinePixelWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child:
-          mSprite == 11
-              ? SizedBox(child: assetMap[11])
-              : SizedBox(child: assetMap[0]),
-      //     ? SizedBox(width: 9, height: 9, child: SoldierTile(mSprite))
-      //     : SizedBox(width: 9, height: 9, child: SoldierTile(1)),
+          mSprite >= 10 || mSprite == 0
+              ? SizedBox(child: assetMap[mSprite])
+              : SoldierTile(mSprite),
     );
   }
 }
@@ -147,11 +86,14 @@ class PixelGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.count(
       crossAxisCount: 10,
-      mainAxisSpacing: 0,
-      crossAxisSpacing: 0,
+      mainAxisSpacing: 1,
+      crossAxisSpacing: 1,
       shrinkWrap: true,
       children: List.generate(100, (index) {
-        return NineByNinePixelWidget(boardData[index]);
+        return FloatingActionButton(
+          onPressed: () {},
+          child: NineByNinePixelWidget(boardData[index]),
+        );
       }),
     );
   }
@@ -183,3 +125,87 @@ class TestApp extends StatelessWidget {
     );
   }
 }
+
+// class Dot extends Positioned {
+//   Dot({super.key, super.top, super.left})
+//     : super(
+//         child: Container(
+//           height: 8,
+//           width: 8,
+//           decoration: BoxDecoration(color: redColor, shape: BoxShape.circle),
+//         ),
+//       );
+// }
+
+// class SoldierTile extends StatelessWidget {
+//   final int mIndex;
+//   final List<Dot> mDots = [];
+//   const SoldierTile(this.mIndex, {super.key});
+//   {
+//     if (mIndex % 2 == 1) {
+//       mDots.add(Dot(top: 18, left: 18)); // middle dot
+//     }
+//     if (mIndex == 3 ||
+//         mIndex == 8 ||
+//         mIndex == 9 ||
+//         mIndex == 7) // other corners
+//     {
+//       mDots.add(Dot(top: 3, left: 18));
+//       mDots.add(Dot(top: 33, left: 18));
+//     }
+//     if (mIndex == 9) // other corners
+//     {
+//       mDots.add(Dot(top: 4, left: 1));
+//       mDots.add(Dot(top: 4, left: 7));
+//     }
+//     if (mIndex == 8 || mIndex == 6) // middle side dots
+//     {
+//       mDots.add(Dot(top: 4, left: 3));
+//       mDots.add(Dot(top: 4, left: 6));
+//     }
+//     if (mIndex == 9 || mIndex == 8 || mIndex == 5 || mIndex == 7) //corners
+//     {
+//       mDots.add(Dot(top: 1, left: 1));
+//       mDots.add(Dot(top: 1, left: 7));
+//       mDots.add(Dot(top: 7, left: 1));
+//       mDots.add(Dot(top: 7, left: 7));
+//     }
+//     if (mIndex == 4) //corners
+//     {
+//       mDots.add(Dot(top: 3, left: 3));
+//       mDots.add(Dot(top: 3, left: 6));
+//       mDots.add(Dot(top: 6, left: 3));
+//       mDots.add(Dot(top: 6, left: 6));
+//     }
+//     if (mIndex == 2 || mIndex == 6 || mIndex == 8) //corners
+//     {
+//       mDots.add(Dot(top: 4, left: 3));
+//       mDots.add(Dot(top: 4, left: 6));
+//     }
+
+//     if (mIndex == 6) //corners
+//     {
+//       mDots.add(Dot(top: 1, left: 3));
+//       mDots.add(Dot(top: 1, left: 6));
+//       mDots.add(Dot(top: 7, left: 3));
+//       mDots.add(Dot(top: 7, left: 6));
+//     }
+//   }
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       decoration: BoxDecoration(color: (tanColor)),
+//       height: 45,
+//       width: 45,
+//       child: Text(
+//         "$mIndex",
+//         style: TextStyle(
+//           fontSize: 35, // Adjust font size as needed
+//           color: redColor,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// Make ambient tile
