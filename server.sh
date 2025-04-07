@@ -14,17 +14,11 @@ find_open_port() {
 }
 
 open_server() {
-  flutter run --dart-define=APP_PORT="$APP_PORT" --target=lib/server.dart -d macos
-}
-
-open_user() {
-  flutter run --dart-define=APP_PORT="$APP_PORT" --target=lib/client.dart -d macos
+  dart run server.dart
 }
 
 export APP_PORT=$(find_open_port)
 echo "✅ Found open port: $APP_PORT"
-
-cd networks_projects
 
 open_server &
 
