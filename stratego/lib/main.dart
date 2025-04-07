@@ -3,9 +3,9 @@ import 'game_data.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
 import "dart:io";
-import "dart:math";
+import 'package:window_manager/window_manager.dart';
 
-const port = 61895;
+const port = 64905;
 
 enum PlayerState { setupboard, opponentTurn, myTurn }
 
@@ -14,22 +14,32 @@ class Player {
   Map<String, String> mChatLog;
   bool first;
   BoardData mGameData;
-  Player(this.client, this.mChatLog, this.first, this.mGameData);
+  PlayerState mState;
+  Player(this.client, this.mChatLog, this.first, this.mGameData, this.mState);
 }
 
 class PlayerController extends Cubit<Player> {
-  PlayerController() : super(Player(null, {}, true, BoardData())) {
+  PlayerController()
+    : super(Player(null, {}, true, BoardData(), PlayerState.setupboard)) {
     connect();
   }
   void updateTurn(bool first) {
-    emit(Player(state.client, state.mChatLog, first, state.mGameData));
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        first,
+        state.mGameData,
+        state.mState,
+      ),
+    );
   }
 
   Future<void> connect() async {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client, {}, state.first, state.mGameData));
+    emit(Player(client, {}, state.first, state.mGameData, state.mState));
   }
 
   Future<Map<String, String>> getServerData() async {
@@ -48,7 +58,15 @@ class PlayerController extends Cubit<Player> {
       Map<String, String> chatMap = contextData.map(
         (key, value) => MapEntry(key, value.toString()),
       );
-      emit(Player(state.client, chatMap, state.first, state.mGameData));
+      emit(
+        Player(
+          state.client,
+          chatMap,
+          state.first,
+          state.mGameData,
+          state.mState,
+        ),
+      );
       return chatMap;
     } catch (e) {
       print("Error fetching server data: $e");
@@ -112,9 +130,25 @@ class RouterApp {
   }
 }
 
-void main() => runApp(
-  BlocProvider(create: (context) => PlayerController(), child: MyApp()),
-);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = WindowOptions(
+    size: Size(1000, 700),
+    center: false,
+    //backgroundColor: Colors.yellow, // Colors.transparent,
+    skipTaskbar: false,
+    // titleBarStyle: TitleBarStyle.hidden,
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    // await Future.delayed( Duration(seconds: 2) );
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  runApp(BlocProvider(create: (context) => PlayerController(), child: MyApp()));
+}
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
@@ -171,13 +205,20 @@ class GamePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playerController = context.read<PlayerController>();
-    String title = "Game";
+    String outtext =
+        playerController.state.mState == PlayerState.setupboard
+            ? "Set up your board with the pieces to the right"
+            : playerController.state.mState == PlayerState.myTurn
+            ? "Your Turn!"
+            : playerController.state.mState == PlayerState.opponentTurn
+            ? "Opponents Turn!"
+            : "Game Over";
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(outtext),
         // You can add actions, leading icons, etc.
       ),
-      body: Column(
+      body: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ElevatedButton(
@@ -186,7 +227,10 @@ class GamePage extends StatelessWidget {
             },
             child: const Text("Chat"),
           ),
+          SizedBox(width: 50, height: double.infinity),
           GameLayout(playerController.state.mGameData),
+          SizedBox(width: 50, height: double.infinity),
+          BagUI(),
         ],
       ),
     );
