@@ -84,27 +84,33 @@ class PixelGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 10,
-      mainAxisSpacing: 1,
-      crossAxisSpacing: 1,
-      shrinkWrap: true,
-      children: List.generate(100, (index) {
-        return FloatingActionButton(
-          onPressed: () {},
-          child: NineByNinePixelWidget(boardData[index]),
+    const int gridSize = 10;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(gridSize, (row) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(gridSize, (col) {
+            int index = row * gridSize + col;
+            return GestureDetector(
+              onTap: () {
+                // Handle tap on individual grid cell if needed.
+              },
+              child: NineByNinePixelWidget(boardData[index]),
+            );
+          }),
         );
       }),
     );
   }
 }
 
-BoardData testData = BoardData();
+//BoardData testData = BoardData();
+//void main() => runApp(const TestApp());
 
-void main() => runApp(const TestApp());
-
-class TestApp extends StatelessWidget {
-  const TestApp({super.key});
+class GameLayout extends StatelessWidget {
+  final BoardData gameData;
+  const GameLayout(this.gameData, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -112,15 +118,11 @@ class TestApp extends StatelessWidget {
     final double cellSize = 45.0;
     final double totalSize = gridSize * cellSize;
 
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: totalSize,
-            height: totalSize,
-            child: PixelGrid(boardData: testData.mPieces),
-          ),
-        ),
+    return Center(
+      child: SizedBox(
+        width: totalSize,
+        height: totalSize,
+        child: PixelGrid(boardData: gameData.mPieces),
       ),
     );
   }

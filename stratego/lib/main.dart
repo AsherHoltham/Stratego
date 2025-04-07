@@ -7,29 +7,29 @@ import "dart:math";
 
 const port = 61895;
 
-enum PlayerState { choosing, setupboard, opponentTurn, myTurn }
+enum PlayerState { setupboard, opponentTurn, myTurn }
 
 class Player {
   HttpClient? client;
-  Map<String, String> mChatLog = {};
+  Map<String, String> mChatLog;
   bool first;
-  bool choosen;
-  Player(this.client, this.mChatLog, this.first, this.choosen);
+  BoardData mGameData;
+  Player(this.client, this.mChatLog, this.first, this.mGameData);
 }
 
 class PlayerController extends Cubit<Player> {
-  PlayerController() : super(Player(null, {}, true, false)) {
+  PlayerController() : super(Player(null, {}, true, BoardData())) {
     connect();
   }
   void updateTurn(bool first) {
-    emit(Player(state.client, state.mChatLog, first, true));
+    emit(Player(state.client, state.mChatLog, first, state.mGameData));
   }
 
   Future<void> connect() async {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client, {}, state.first, state.choosen));
+    emit(Player(client, {}, state.first, state.mGameData));
   }
 
   Future<Map<String, String>> getServerData() async {
@@ -48,7 +48,7 @@ class PlayerController extends Cubit<Player> {
       Map<String, String> chatMap = contextData.map(
         (key, value) => MapEntry(key, value.toString()),
       );
-      emit(Player(state.client, chatMap, state.first, state.choosen));
+      emit(Player(state.client, chatMap, state.first, state.mGameData));
       return chatMap;
     } catch (e) {
       print("Error fetching server data: $e");
@@ -170,8 +170,13 @@ class GamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final playerController = context.read<PlayerController>();
+    String title = "Game";
     return Scaffold(
-      appBar: AppBar(title: const Text("Game Page")),
+      appBar: AppBar(
+        title: Text(title),
+        // You can add actions, leading icons, etc.
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -181,6 +186,7 @@ class GamePage extends StatelessWidget {
             },
             child: const Text("Chat"),
           ),
+          GameLayout(playerController.state.mGameData),
         ],
       ),
     );
@@ -196,7 +202,6 @@ class ChatPage extends StatelessWidget {
     final textController = TextEditingController();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Chat Page")),
       body: Column(
         children: [
           ElevatedButton(
