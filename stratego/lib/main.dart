@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'game_data.dart';
+import 'game.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
 import "dart:io";
 import 'package:window_manager/window_manager.dart';
+import 'game.dart';
+import 'game_setup.dart';
+import 'game_data.dart';
 
-const port = 53334;
+const port = 49920;
 
 class TileType {
   final int pieceVal;
@@ -15,10 +18,19 @@ class TileType {
 
 class GameData {
   late List<TileType> mData;
+
   GameData(this.mData);
+
+  factory GameData.fromJson(Map<String, dynamic> json) {
+    List<TileType> tiles =
+        (json['mData'] as List)
+            .map((tile) => TileType(tile['pieceVal'], tile['type']))
+            .toList();
+    return GameData(tiles);
+  }
 }
 
-enum PlayerState { setupboard, opponentTurn, myTurn }
+enum PlayerState { setupboard, waiting, opponentTurn, myTurn }
 
 class Player {
   HttpClient? client;
@@ -54,6 +66,29 @@ class PlayerController extends Cubit<Player> {
         state.first,
         state.mGameData,
         PlayerState.opponentTurn,
+      ),
+    );
+  }
+
+  void initGame(BoardData data) {
+    GameData newData = GameData([]);
+    int playerType = state.first ? 1 : 2;
+    for (int i = 0; i < 100; i++) {
+      if (data.mPieces[i] == 11) {
+        newData.mData.add(TileType(11, 0));
+      } else if (data.mPieces[i] == 0) {
+        newData.mData.add(TileType(0, 0));
+      } else {
+        newData.mData.add(TileType(data.mPieces[i], playerType));
+      }
+    }
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.first,
+        newData,
+        PlayerState.waiting,
       ),
     );
   }
@@ -115,6 +150,51 @@ class PlayerController extends Cubit<Player> {
       print("Error sending message: $e");
     }
   }
+
+  Future<GameData> getGameData() async {
+    final client = state.client;
+    if (client == null) return state.mGameData;
+    final url = Uri.parse("http://localhost:$port/game");
+    try {
+      final request = await client.getUrl(url);
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      final Map<String, dynamic> decoded = jsonDecode(responseBody);
+      final gameData = GameData.fromJson(decoded);
+      emit(
+        Player(
+          state.client,
+          state.mChatLog,
+          state.first,
+          gameData,
+          state.mState,
+        ),
+      );
+      return gameData;
+    } catch (e) {
+      print("Error fetching game data: $e");
+      return state.mGameData;
+    }
+  }
+
+  Future<void> sendGameData() async {
+    final client = state.client;
+    if (client == null) return;
+    final url = Uri.parse("http://localhost:$port/game");
+    try {
+      final request = await client.postUrl(url);
+      final String userName = state.first ? "Player 1" : "Player 2";
+      request.headers.add("id", userName);
+      final payload = jsonEncode(state.mGameData);
+      request.headers.contentType = ContentType.json;
+      request.write(payload);
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      print("Response from server: $responseBody");
+    } catch (e) {
+      print("Error sending message: $e");
+    }
+  }
 }
 
 class RouterApp {
@@ -132,14 +212,21 @@ class RouterApp {
       );
     } else if (settings.name == "game") {
       return MaterialPageRoute(
-        builder:
-            (_) => BlocProvider.value(
-              value: controller,
-              child: BlocProvider(
-                create: (context) => SetUpBoardController(),
-                child: const GamePage(),
+        builder: (context) {
+          final playerController = BlocProvider.of<PlayerController>(context);
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider<PlayerController>.value(value: playerController),
+              BlocProvider<SetUpBoardController>(
+                create:
+                    (_) => SetUpBoardController(
+                      playerController: playerController,
+                    ),
               ),
-            ),
+            ],
+            child: const GamePage(),
+          );
+        },
       );
     } else if (settings.name == "chat") {
       return MaterialPageRoute(
@@ -237,6 +324,8 @@ class GamePage extends StatelessWidget {
     String outtext =
         playerController.state.mState == PlayerState.setupboard
             ? "Set up your board, tap on the right buttons \n to use your pieces"
+            : playerController.state.mState == PlayerState.waiting
+            ? "Waiting for opponent"
             : playerController.state.mState == PlayerState.myTurn
             ? "Your Turn, move a piece"
             : playerController.state.mState == PlayerState.opponentTurn
@@ -257,7 +346,8 @@ class GamePage extends StatelessWidget {
             child: const Text("Chat"),
           ),
           SizedBox(width: 50, height: double.infinity),
-          GameLayout(),
+          if (playerController.state.mState == PlayerState.setupboard)
+            GameSetUpLayout(),
           if (playerController.state.mState == PlayerState.setupboard)
             SizedBox(width: 50, height: double.infinity),
           if (playerController.state.mState == PlayerState.setupboard) BagUI(),
