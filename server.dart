@@ -15,20 +15,21 @@ class GameData {
   bool recBoardConfig1 = false;
   bool recBoardConfig2 = false;
   GameData();
+
+  void mergeAndStartGame() {
+    for (int p2Index = 0; p2Index < 60; p2Index++) {
+      final tile = p2Data[p2Index];
+      if (tile != null) {
+        mData[p2Index] = TileType(tile.pieceVal, tile.type);
+      }
+    }
+  }
 }
 
 class TileType {
-  final int pieceVal;
-  final int type; // 0 is ambient, 1: player 1, 2: player 2
+  int pieceVal;
+  int type; // 0 is ambient, 1: player 1, 2: player 2
   TileType(this.pieceVal, this.type);
-}
-
-List<TileType> reverse(List<TileType> data) {
-  List<TileType> reverseData = List<TileType>.filled(data.length, data[0]);
-  for (int i = 0; i < data.length; i++) {
-    reverseData[data.length - 1 - i] = data[i];
-  }
-  return reverseData;
 }
 
 Future<Response> chatController(Request request, ChatLog log) async {
@@ -58,8 +59,18 @@ Future<Response> gameController(Request request, GameData gameData) async {
     return Response.ok(responseBody,
         headers: {'Content-Type': 'application/json'});
   } else if (request.method == 'POST') {
+    final playerID = request.headers['id'];
     final payload = await request.readAsString();
     final Map<int, TileType> data = jsonDecode(payload);
+    if (!gameData.recBoardConfig1 && playerID == 'p1') {
+      gameData.recBoardConfig1 = true;
+      gameData.p1Data = data;
+      if (gameData.recBoardConfig2) {}
+    } //TODO
+    if (!gameData.recBoardConfig2 && playerID == 'p2') {
+      gameData.recBoardConfig2 = true;
+      gameData.p2Data = data;
+    } //TODO
     gameData.mData = data;
     return Response.ok('Received game POST with payload: $payload');
   } else {

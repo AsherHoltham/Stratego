@@ -82,10 +82,8 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
         updatedEmptyPieces[sprite] = true;
       }
       if (updatedEmptyPieces.values.every((value) => value == true)) {
-        print("Here"); // this isnt working!
         sendData();
       }
-      // Emit the new state.
       emit(
         SetUpBoard(
           false,
@@ -100,9 +98,9 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
   }
 
   void sendData() async {
+    playerController.initGameData(state.mData);
     await playerController.sendGameData();
     playerController.getGameData();
-    playerController.initGame(state.mData);
   }
 
   void toggleHeatMap(int sprite) {

@@ -27,6 +27,26 @@ class GameData {
             .toList();
     return GameData(tiles);
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'mData':
+          mData
+              .map((tile) => {'pieceVal': tile.pieceVal, 'type': tile.type})
+              .toList(),
+    };
+  }
+
+  void rotate180() {
+    List<TileType> copy = mData;
+    for (int row = 0; row < 10; row++) {
+      for (int col = 0; col < 10; col++) {
+        int srcIndex = row * 10 + col;
+        int dstIndex = (9 - row) * 10 + (9 - col);
+        mData[dstIndex] = copy[srcIndex];
+      }
+    }
+  }
 }
 
 enum PlayerState { setupboard, waiting, opponentTurn, myTurn }
@@ -69,7 +89,7 @@ class PlayerController extends Cubit<Player> {
     );
   }
 
-  void initGame(BoardData data) {
+  void initGameData(BoardData data) {
     GameData newData = GameData([]);
     int playerType = state.first ? 1 : 2;
     for (int i = 0; i < 100; i++) {
@@ -81,6 +101,10 @@ class PlayerController extends Cubit<Player> {
         newData.mData.add(TileType(data.mPieces[i], playerType));
       }
     }
+    if (playerType == 2) {
+      newData.rotate180();
+    }
+
     emit(
       Player(
         state.client,
@@ -137,7 +161,7 @@ class PlayerController extends Cubit<Player> {
     final url = Uri.parse("http://localhost:$port/chat");
     try {
       final request = await client.postUrl(url);
-      final String userName = state.first ? "Player 1" : "Player 2";
+      final String userName = state.first ? "p1" : "p2";
       final payload = jsonEncode({"message": message, "user": userName});
       request.headers.contentType = ContentType.json;
       request.write(payload);
@@ -181,16 +205,16 @@ class PlayerController extends Cubit<Player> {
     final url = Uri.parse("http://localhost:$port/game");
     try {
       final request = await client.postUrl(url);
-      final String userName = state.first ? "Player 1" : "Player 2";
+      final String userName = state.first ? "p1" : "p2";
       request.headers.add("id", userName);
-      final payload = jsonEncode(state.mGameData);
+      final payload = jsonEncode(state.mGameData.mData);
       request.headers.contentType = ContentType.json;
       request.write(payload);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
       print("Response from server: $responseBody");
     } catch (e) {
-      print("Error sending message: $e");
+      print("Error sending data: $e");
     }
   }
 }
