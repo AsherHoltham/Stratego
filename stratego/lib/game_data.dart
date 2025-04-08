@@ -56,11 +56,30 @@ class BoardData {
     mPieces[43] = 11;
     mPieces[46] = 11;
     mPieces[47] = 11;
-    // for (int i = 60; i < 100; i++) {
-    //   mPieces[i] = 15; // opponent pieces
-    // }
   }
   BoardData.withPieces(this.mPieces);
+}
+
+class TileType {
+  final int pieceVal;
+  final int type; // 0 is ambient, 1: player 1, 2: player 2
+  TileType(this.pieceVal, this.type);
+}
+
+class GameData {
+  late List<TileType> mData;
+  GameData() {
+    mData = List.generate(100, (index) => TileType(0, 0));
+    mData[52] = TileType(11, 0);
+    mData[53] = TileType(11, 0);
+    mData[56] = TileType(11, 0);
+    mData[57] = TileType(11, 0);
+    mData[42] = TileType(11, 0);
+    mData[43] = TileType(11, 0);
+    mData[46] = TileType(11, 0);
+    mData[47] = TileType(11, 0);
+  }
+  GameData.withPieces(this.mData);
 }
 
 class SoldierTile extends StatelessWidget {
@@ -209,8 +228,6 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
         ),
       );
 
-  //Future< sendData() {}
-
   void updateBag(int sprite, int selectedBoardIndex) {
     if (selectedBoardIndex >= 60 &&
         state.mPieces.containsKey(sprite) &&
@@ -244,6 +261,8 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
       if (state.emptyPieces.values.every((value) => value == false)) {}
     }
   }
+
+  void sendData() {}
 
   void toggleHeatMap(int sprite) {
     final heatMapBoard = List<int>.from(state.mData.mPieces);

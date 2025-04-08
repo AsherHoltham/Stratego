@@ -1,77 +1,87 @@
-import 'package:shelf/shelf.dart';
-import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'dart:io';
 import 'dart:convert';
-
-//const port = int.fromEnvironment('APP_PORT', defaultValue: 9203);
-enum GameState { setup, firstPlayerTurn, secondPlayerTurn, endOfGame }
-
-class Game {
-  GameState mState = GameState.setup;
-  Map<int, int> mBoardData = {};
-  Game() {
-    Map.fromIterable(
-      List.generate(100, (index) => index),
-      key: (item) => item,
-      value: (item) => 0,
-    );
-    mBoardData[52] = 11;
-    mBoardData[53] = 11;
-    mBoardData[56] = 11;
-    mBoardData[57] = 11;
-    mBoardData[42] = 11;
-    mBoardData[43] = 11;
-    mBoardData[46] = 11;
-    mBoardData[47] = 11;
-  }
-}
+import 'dart:io';
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as io;
+import 'package:shelf_router/shelf_router.dart';
 
 class ChatLog {
   Map<String, String> mLog = {};
-  ChatLog(this.mLog);
 }
 
-void main() async {
-  ChatLog log = ChatLog({});
-  final portString = Platform.environment['APP_PORT'] ?? '9203';
-  final port = int.parse(portString);
-  print('Server will run on port: $port');
-
-  // Pass log to the controller via a closure.
-  var handler = const Pipeline()
-      .addMiddleware(logRequests())
-      .addHandler((Request request) => _gameController(request, log));
-
-  var server = await shelf_io.serve(handler, 'localhost', port);
-
-  // Enable content compression
-  server.autoCompress = true;
-
-  print('Serving at http://${server.address.host}:${server.port}');
+class GameData {
+  Map<int, TileType> mData = {};
+  Map<int, TileType> p1Data = {};
+  Map<int, TileType> p2Data = {};
+  bool recBoardConfig1 = false;
+  bool recBoardConfig2 = false;
+  GameData();
 }
 
-Future<Response> _gameController(Request request, ChatLog log) async {
-  // If the method is GET, read the query parameters.
+class TileType {
+  final int pieceVal;
+  final int type; // 0 is ambient, 1: player 1, 2: player 2
+  TileType(this.pieceVal, this.type);
+}
+
+List<TileType> reverse(List<TileType> data) {
+  List<TileType> reverseData = List<TileType>.filled(data.length, data[0]);
+  for (int i = 0; i < data.length; i++) {
+    reverseData[data.length - 1 - i] = data[i];
+  }
+  return reverseData;
+}
+
+Future<Response> chatController(Request request, ChatLog log) async {
   if (request.method == 'GET') {
-    final queryParams = request.url.queryParameters;
     final responseBody = jsonEncode({
-      'headers': "chat",
+      'headers': 'chat',
       'context': log.mLog,
     });
-    return Response.ok(
-      responseBody,
-      headers: {'Content-Type': 'application/json'},
-    );
-  }
-  // If the method is POST, read the body.
-  else if (request.method == 'POST') {
+    return Response.ok(responseBody,
+        headers: {'Content-Type': 'application/json'});
+  } else if (request.method == 'POST') {
     final payload = await request.readAsString();
     final Map<String, dynamic> data = jsonDecode(payload);
     log.mLog[data["message"]] = data["user"];
-    return Response.ok('Received POST with payload: $payload');
-  }
-  // For any other methods, return a 405 Method Not Allowed.
-  else {
+    return Response.ok('Received chat POST with payload: $payload');
+  } else {
     return Response(405, body: 'Method not allowed');
   }
+}
+
+Future<Response> gameController(Request request, GameData gameData) async {
+  if (request.method == 'GET') {
+    final responseBody = jsonEncode({
+      'headers': 'game',
+      'context': gameData.mData,
+    });
+    return Response.ok(responseBody,
+        headers: {'Content-Type': 'application/json'});
+  } else if (request.method == 'POST') {
+    final payload = await request.readAsString();
+    final Map<int, TileType> data = jsonDecode(payload);
+    gameData.mData = data;
+    return Response.ok('Received game POST with payload: $payload');
+  } else {
+    return Response(405, body: 'Method not allowed');
+  }
+}
+
+void main(List<String> args) async {
+  final chatLog = ChatLog();
+  final gameData = GameData();
+  final router = Router();
+
+  router.get('/chat', (Request request) => chatController(request, chatLog));
+  router.post('/chat', (Request request) => chatController(request, chatLog));
+  router.get('/game', (Request request) => gameController(request, gameData));
+  router.post('/game', (Request request) => gameController(request, gameData));
+
+  // Construct a pipeline that adds logging middleware.
+  var handler = Pipeline().addMiddleware(logRequests()).addHandler(router);
+
+  final port = int.parse(Platform.environment['APP_PORT'] ?? '8080');
+  final server = await io.serve(handler, '0.0.0.0', port);
+
+  print('Server listening on port ${server.port}');
 }

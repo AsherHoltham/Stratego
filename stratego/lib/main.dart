@@ -5,7 +5,18 @@ import 'dart:convert';
 import "dart:io";
 import 'package:window_manager/window_manager.dart';
 
-const port = 65473;
+const port = 53334;
+
+class TileType {
+  final int pieceVal;
+  final int type; // 0 is ambient, 1: player 1, 2: player 2
+  TileType(this.pieceVal, this.type);
+}
+
+class GameData {
+  late List<TileType> mData;
+  GameData(this.mData);
+}
 
 enum PlayerState { setupboard, opponentTurn, myTurn }
 
@@ -13,17 +24,17 @@ class Player {
   HttpClient? client;
   Map<String, String> mChatLog;
   bool first;
-  BoardData mGameData;
+  GameData mGameData;
   PlayerState mState;
   Player(this.client, this.mChatLog, this.first, this.mGameData, this.mState);
 }
 
 class PlayerController extends Cubit<Player> {
   PlayerController()
-    : super(Player(null, {}, true, BoardData(), PlayerState.setupboard)) {
+    : super(Player(null, {}, true, GameData([]), PlayerState.setupboard)) {
     connect();
   }
-  void updateTurn(bool first) {
+  void playerSelect(bool first) {
     emit(
       Player(
         state.client,
@@ -31,6 +42,18 @@ class PlayerController extends Cubit<Player> {
         first,
         state.mGameData,
         state.mState,
+      ),
+    );
+  }
+
+  void endTurn() {
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.first,
+        state.mGameData,
+        PlayerState.opponentTurn,
       ),
     );
   }
@@ -45,7 +68,7 @@ class PlayerController extends Cubit<Player> {
   Future<Map<String, String>> getChatLog() async {
     final client = state.client;
     if (client == null) return {};
-    final url = Uri.parse("http://localhost:$port");
+    final url = Uri.parse("http://localhost:$port/chat");
     try {
       final request = await client.getUrl(url);
       final response = await request.close();
@@ -77,7 +100,7 @@ class PlayerController extends Cubit<Player> {
   Future<void> sendMessage(String message) async {
     final client = state.client;
     if (client == null) return;
-    final url = Uri.parse("http://localhost:$port");
+    final url = Uri.parse("http://localhost:$port/chat");
     try {
       final request = await client.postUrl(url);
       // Create a JSON payload. You can modify the 'user' field as needed.
@@ -186,7 +209,7 @@ class GameLaunch extends StatelessWidget {
         children: [
           ElevatedButton(
             onPressed: () {
-              playerController.updateTurn(true);
+              playerController.playerSelect(true);
               Navigator.of(context).pushNamed("game");
             },
             child: const Text("Player 1"),
@@ -194,7 +217,7 @@ class GameLaunch extends StatelessWidget {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              playerController.updateTurn(false);
+              playerController.playerSelect(false);
               Navigator.of(context).pushNamed("game");
             },
             child: const Text("Player 2"),
