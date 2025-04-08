@@ -29,6 +29,21 @@ Map<int, int> playerPieces = {
   1: 1,
 };
 
+Map<int, bool> fullBag = {
+  13: false,
+  12: false,
+  10: false,
+  9: false,
+  8: false,
+  7: false,
+  6: false,
+  5: false,
+  4: false,
+  3: false,
+  2: false,
+  1: false,
+};
+
 class BoardData {
   late List<int> mPieces;
   BoardData() {
@@ -45,6 +60,9 @@ class BoardData {
     //   mPieces[i] = 15; // opponent pieces
     // }
   }
+  BoardData(List<int> data) {
+    mPieces = data;
+  }
 }
 
 class SoldierTile extends StatelessWidget {
@@ -57,7 +75,7 @@ class SoldierTile extends StatelessWidget {
         ? Container(
           decoration: BoxDecoration(
             color: (turquoiseBlue),
-            border: Border.all(color: Colors.black),
+            border: Border.all(color: Colors.black, width: 1.0),
           ),
           height: 45,
           width: 45,
@@ -141,32 +159,52 @@ class GameLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int gridSize = 10;
-    final double cellSize = 45.0;
-    final double totalSize = gridSize * cellSize;
+    return BlocBuilder<SetUpBoardController, SetUpBoard>(
+      builder: (context, state) {
+        final int gridSize = 10;
+        final double cellSize = 45.0;
+        final double totalSize = gridSize * cellSize;
 
-    return Center(
-      child: SizedBox(
-        width: totalSize,
-        height: totalSize,
-        child: PixelGrid(boardData: gameData.mPieces),
-      ),
+        return Center(
+          child: SizedBox(
+            width: totalSize,
+            height: totalSize,
+            child: PixelGrid(boardData: gameData.mPieces),
+          ),
+        );
+      },
     );
   }
 }
 
 class SetUpBoard {
   bool pieceSelected;
+  int selectedPiece;
+  Map<int, bool> emptyPieces;
   Map<int, int> mPieces;
   BoardData mData;
-  SetUpBoard(this.pieceSelected, this.mPieces, this.mData);
+  SetUpBoard(
+    this.pieceSelected,
+    this.selectedPiece,
+    this.emptyPieces,
+    this.mPieces,
+    this.mData,
+  );
 }
 
 class SetUpBoardController extends Cubit<SetUpBoard> {
   SetUpBoardController()
-    : super(SetUpBoard(false, Map<int, int>.from(playerPieces), BoardData()));
+    : super(
+        SetUpBoard(
+          false,
+          14,
+          fullBag,
+          Map<int, int>.from(playerPieces),
+          BoardData(),
+        ),
+      );
 
-  void updateBag(int sprite, int selected) {
+  void updateBag(int sprite, int selectedBoardIndex) {
     // Check that the piece exists and has a count greater than 0
     if (state.mPieces.containsKey(sprite) && state.mPieces[sprite]! > 0) {
       // Create a copy of the pieces map to preserve immutability.
@@ -176,15 +214,97 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
 
       // Create a copy of the board's piece list.
       final updatedBoardPieces = List<int>.from(state.mData.mPieces);
-      updatedBoardPieces[selected] = newCount;
+      updatedBoardPieces[selectedBoardIndex] = sprite;
 
       // Create a new BoardData with the updated board pieces.
       final updatedBoardData = BoardData();
       updatedBoardData.mPieces = updatedBoardPieces;
 
+      final updatedEmptyPieces = Map<int, bool>.from(state.emptyPieces);
+      if (newCount == 0) {
+        updatedEmptyPieces[sprite] = true;
+      }
+
       // Emit the new state.
-      emit(SetUpBoard(false, updatedPieces, updatedBoardData));
+      emit(
+        SetUpBoard(
+          false,
+          14,
+          updatedEmptyPieces,
+          updatedPieces,
+          updatedBoardData,
+        ),
+      );
     }
+  }
+
+  void toggleHeatMap(int sprite) {
+    final heatMapBoard = List<int>.from(state.mData.mPieces);
+    for (int i = 60; i < 100; i++) {
+      if (heatMapBoard[i] == 0) {
+        heatMapBoard[i] = 15;
+      }
+    }
+    emit(
+      SetUpBoard(true, sprite, state.emptyPieces, state.mPieces, heatMapBoard),
+    );
+  }
+
+  void untoggleHeatMap() {
+    final updatedPieces = Map<int, int>.from(state.mPieces);
+    for (int i = 60; i < 100; i++) {
+      if (updatedPieces[i] == 15) {
+        updatedPieces[i] = 0;
+      }
+    }
+    emit(SetUpBoard(false, 14, state.emptyPieces, updatedPieces, state.mData));
+  }
+}
+
+class BagTile extends StatelessWidget {
+  final int mIndex;
+  const BagTile(this.mIndex, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SetUpBoardController, SetUpBoard>(
+      builder: (context, state) {
+        // Choose widget depending on whether the mIndex matches the selectedPiece in the state.
+        if (mIndex == state.selectedPiece) {
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: turquoiseBlue, width: 2.0),
+            ),
+            height: 45,
+            width: 45,
+            child:
+                mIndex < 10
+                    ? Container(
+                      decoration: BoxDecoration(color: tanColor),
+                      height: 45,
+                      width: 45,
+                      child: Text(
+                        " $mIndex",
+                        style: const TextStyle(fontSize: 35, color: redColor),
+                      ),
+                    )
+                    : SizedBox(child: assetMap[mIndex]),
+          );
+        } else {
+          return mIndex < 10
+              ? Container(
+                decoration: BoxDecoration(color: tanColor),
+                height: 45,
+                width: 45,
+                child: Text(
+                  " $mIndex",
+                  style: const TextStyle(fontSize: 35, color: redColor),
+                ),
+              )
+              : SizedBox(child: assetMap[mIndex]);
+        }
+      },
+    );
   }
 }
 
@@ -224,6 +344,7 @@ class BagUI extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final boardController = context.read<SetUpBoardController>();
     final int gridSize = 12;
     final double cellSize = 45.0;
     final double totalSize = gridSize * cellSize;
@@ -239,6 +360,15 @@ class BagUI extends StatelessWidget {
               children: List.generate(gridSize, (index) {
                 return GestureDetector(
                   onTap: () {
+                    print("Tapped");
+                    print("${boardController.state.pieceSelected}");
+                    print("${boardController.state.selectedPiece}");
+
+                    if (!boardController.state.pieceSelected) {
+                      boardController.toggleHeatMap(
+                        index + 1 > 10 ? index + 2 : index + 1,
+                      );
+                    }
                     // Handle tap on individual grid cell if needed.
                     // highlight yellow pieces the ones in their border that index at 0
                     //set bool to true so that if clicked on the grid it places the piece and decrements
@@ -257,6 +387,7 @@ class BagUI extends StatelessWidget {
     );
   }
 }
+
 // class Dot extends Positioned {
 //   Dot({super.key, super.top, super.left})
 //     : super(

@@ -5,7 +5,7 @@ import 'dart:convert';
 import "dart:io";
 import 'package:window_manager/window_manager.dart';
 
-const port = 64905;
+const port = 65473;
 
 enum PlayerState { setupboard, opponentTurn, myTurn }
 
@@ -110,8 +110,13 @@ class RouterApp {
     } else if (settings.name == "game") {
       return MaterialPageRoute(
         builder:
-            (_) =>
-                BlocProvider.value(value: controller, child: const GamePage()),
+            (_) => BlocProvider.value(
+              value: controller,
+              child: BlocProvider(
+                create: (context) => SetUpBoardController(),
+                child: const GamePage(),
+              ),
+            ),
       );
     } else if (settings.name == "chat") {
       return MaterialPageRoute(
@@ -209,9 +214,9 @@ class GamePage extends StatelessWidget {
         playerController.state.mState == PlayerState.setupboard
             ? "Set up your board with the pieces to the right"
             : playerController.state.mState == PlayerState.myTurn
-            ? "Your Turn!"
+            ? "Your Turn, move a piece"
             : playerController.state.mState == PlayerState.opponentTurn
-            ? "Opponents Turn!"
+            ? "Opponents Turn"
             : "Game Over";
     return Scaffold(
       appBar: AppBar(
