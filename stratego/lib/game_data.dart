@@ -128,22 +128,30 @@ class PixelGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const int gridSize = 10;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(gridSize, (row) {
-        return Row(
+    final boardController = context.read<SetUpBoardController>();
+
+    return BlocBuilder<SetUpBoardController, SetUpBoard>(
+      builder: (context, state) {
+        return Column(
           mainAxisSize: MainAxisSize.min,
-          children: List.generate(gridSize, (col) {
-            int index = row * gridSize + col;
-            return GestureDetector(
-              onTap: () {
-                // Handle tap on individual grid cell if needed.
-              },
-              child: NineByNinePixelWidget(boardData[index], index),
+          children: List.generate(gridSize, (row) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(gridSize, (col) {
+                int index = row * gridSize + col;
+                return GestureDetector(
+                  onTap: () {
+                    if (state.pieceSelected) {
+                      boardController.updateBag(state.selectedPiece, index);
+                    }
+                  },
+                  child: NineByNinePixelWidget(boardData[index], index),
+                );
+              }),
             );
           }),
         );
-      }),
+      },
     );
   }
 }
@@ -201,19 +209,19 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
         ),
       );
 
+  //Future< sendData() {}
+
   void updateBag(int sprite, int selectedBoardIndex) {
-    // Check that the piece exists and has a count greater than 0
-    if (state.mPieces.containsKey(sprite) && state.mPieces[sprite]! > 0) {
-      // Create a copy of the pieces map to preserve immutability.
+    if (selectedBoardIndex >= 60 &&
+        state.mPieces.containsKey(sprite) &&
+        state.mPieces[sprite]! > 0) {
       final updatedPieces = Map<int, int>.from(state.mPieces);
       int newCount = updatedPieces[sprite]! - 1;
       updatedPieces[sprite] = newCount;
 
-      // Create a copy of the board's piece list.
       final updatedBoardPieces = List<int>.from(state.mData.mPieces);
       updatedBoardPieces[selectedBoardIndex] = sprite;
 
-      // Create a new BoardData with the updated board pieces.
       final updatedBoardData = BoardData();
       updatedBoardData.mPieces = updatedBoardPieces;
 
@@ -232,6 +240,8 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
           updatedBoardData,
         ),
       );
+      untoggleHeatMap();
+      if (state.emptyPieces.values.every((value) => value == false)) {}
     }
   }
 
@@ -290,12 +300,12 @@ class NineByNinePixelWidgetBag extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            " ${playerPieces[mSprite]}",
+                            " ${state.mPieces[mSprite]}",
                             style: TextStyle(fontSize: 35, color: Colors.black),
                           ),
                         )
                         : Text(
-                          " ${playerPieces[mSprite]}",
+                          " ${state.mPieces[mSprite]}",
                           style: TextStyle(fontSize: 35, color: turquoiseBlue),
                         ),
               ),
@@ -335,6 +345,8 @@ class BagUI extends StatelessWidget {
                           boardController.toggleHeatMap(
                             index + 1 > 10 ? index + 2 : index + 1,
                           );
+                        } else {
+                          boardController.untoggleHeatMap();
                         }
                         // Handle tap on individual grid cell if needed.
                         // highlight yellow pieces the ones in their border that index at 0
@@ -355,6 +367,78 @@ class BagUI extends StatelessWidget {
       },
     );
   }
+}
+
+class Game {
+  bool pieceSelected;
+  int selectedPiece;
+  Map<int, int> mPieces;
+  BoardData mData;
+  Game(this.pieceSelected, this.selectedPiece, this.mPieces, this.mData);
+}
+
+class TurnController extends Cubit<Game> {
+  TurnController()
+    : super(Game(false, 14, Map<int, int>.from(playerPieces), BoardData()));
+
+  // void sendData() {}
+
+  // void updateBag(int sprite, int selectedBoardIndex) {
+  //   if (selectedBoardIndex >= 60 &&
+  //       state.mPieces.containsKey(sprite) &&
+  //       state.mPieces[sprite]! > 0) {
+  //     final updatedPieces = Map<int, int>.from(state.mPieces);
+  //     int newCount = updatedPieces[sprite]! - 1;
+  //     updatedPieces[sprite] = newCount;
+
+  //     final updatedBoardPieces = List<int>.from(state.mData.mPieces);
+  //     updatedBoardPieces[selectedBoardIndex] = sprite;
+
+  //     final updatedBoardData = BoardData();
+  //     updatedBoardData.mPieces = updatedBoardPieces;
+
+  //     final updatedEmptyPieces = Map<int, bool>.from(state.emptyPieces);
+  //     if (newCount == 0) {
+  //       updatedEmptyPieces[sprite] = true;
+  //     }
+
+  //     // Emit the new state.
+  //     emit(
+  //       SetUpBoard(
+  //         false,
+  //         14,
+  //         updatedEmptyPieces,
+  //         updatedPieces,
+  //         updatedBoardData,
+  //       ),
+  //     );
+  //     untoggleHeatMap();
+
+  //   }
+  // }
+
+  // void toggleHeatMap(int sprite) {
+  //   final heatMapBoard = List<int>.from(state.mData.mPieces);
+  //   for (int i = 60; i < 100; i++) {
+  //     if (heatMapBoard[i] == 0) {
+  //       heatMapBoard[i] = 15;
+  //     }
+  //   }
+  //   final newData = BoardData.withPieces(heatMapBoard);
+  //   emit(SetUpBoard(true, sprite, state.emptyPieces, state.mPieces, newData));
+  // }
+
+  // void untoggleHeatMap() {
+  //   final undoHeatmap = List<int>.from(state.mData.mPieces);
+  //   for (int i = 60; i < 100; i++) {
+  //     if (undoHeatmap[i] == 15) {
+  //       undoHeatmap[i] = 0;
+  //     }
+  //   }
+  //   final newData = BoardData.withPieces(undoHeatmap);
+
+  //   emit(SetUpBoard(false, 14, state.emptyPieces, state.mPieces, newData));
+  // }
 }
 
 // class BagTile extends StatelessWidget {

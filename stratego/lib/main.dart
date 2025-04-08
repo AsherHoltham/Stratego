@@ -42,7 +42,7 @@ class PlayerController extends Cubit<Player> {
     emit(Player(client, {}, state.first, state.mGameData, state.mState));
   }
 
-  Future<Map<String, String>> getServerData() async {
+  Future<Map<String, String>> getChatLog() async {
     final client = state.client;
     if (client == null) return {};
     final url = Uri.parse("http://localhost:$port");
@@ -151,7 +151,8 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
-
+  WidgetsFlutterBinding.ensureInitialized();
+  //maybe hydrate block
   runApp(BlocProvider(create: (context) => PlayerController(), child: MyApp()));
 }
 
@@ -188,7 +189,7 @@ class GameLaunch extends StatelessWidget {
               playerController.updateTurn(true);
               Navigator.of(context).pushNamed("game");
             },
-            child: const Text("First"),
+            child: const Text("Player 1"),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -196,7 +197,7 @@ class GameLaunch extends StatelessWidget {
               playerController.updateTurn(false);
               Navigator.of(context).pushNamed("game");
             },
-            child: const Text("Second"),
+            child: const Text("Player 2"),
           ),
         ],
       ),
@@ -212,11 +213,11 @@ class GamePage extends StatelessWidget {
     final playerController = context.read<PlayerController>();
     String outtext =
         playerController.state.mState == PlayerState.setupboard
-            ? "Set up your board with the pieces to the right"
+            ? "Set up your board, tap on the right buttons \n to use your pieces"
             : playerController.state.mState == PlayerState.myTurn
             ? "Your Turn, move a piece"
             : playerController.state.mState == PlayerState.opponentTurn
-            ? "Opponents Turn"
+            ? "Waiting for opponent..."
             : "Game Over";
     return Scaffold(
       appBar: AppBar(
@@ -234,8 +235,9 @@ class GamePage extends StatelessWidget {
           ),
           SizedBox(width: 50, height: double.infinity),
           GameLayout(),
-          SizedBox(width: 50, height: double.infinity),
-          BagUI(),
+          if (playerController.state.mState == PlayerState.setupboard)
+            SizedBox(width: 50, height: double.infinity),
+          if (playerController.state.mState == PlayerState.setupboard) BagUI(),
         ],
       ),
     );
@@ -295,7 +297,7 @@ class ChatPage extends StatelessWidget {
                 onPressed: () {
                   playerController.sendMessage(textController.text);
                   textController.clear();
-                  playerController.getServerData();
+                  playerController.getChatLog();
                 },
                 child: const Icon(Icons.send),
               ),
