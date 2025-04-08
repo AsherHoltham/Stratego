@@ -4,11 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
 import "dart:io";
 import 'package:window_manager/window_manager.dart';
-import 'game.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 49920;
+const port = 50040;
 
 class TileType {
   final int pieceVal;
@@ -93,6 +92,7 @@ class PlayerController extends Cubit<Player> {
     );
   }
 
+  /// FINISHED
   Future<void> connect() async {
     // For HTTP communication, we simply create an HttpClient.
 
@@ -100,6 +100,7 @@ class PlayerController extends Cubit<Player> {
     emit(Player(client, {}, state.first, state.mGameData, state.mState));
   }
 
+  /// FINISHED
   Future<Map<String, String>> getChatLog() async {
     final client = state.client;
     if (client == null) return {};
@@ -108,11 +109,8 @@ class PlayerController extends Cubit<Player> {
       final request = await client.getUrl(url);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
-      // The server returns a JSON object like:
-      // { "headers": "chat", "context": { "key1": "value1", ... } }
       final Map<String, dynamic> data = jsonDecode(responseBody);
       final Map<String, dynamic> contextData = data['context'];
-      // Convert contextData to Map<String, String>
       Map<String, String> chatMap = contextData.map(
         (key, value) => MapEntry(key, value.toString()),
       );
@@ -132,13 +130,13 @@ class PlayerController extends Cubit<Player> {
     }
   }
 
+  /// FINISHED
   Future<void> sendMessage(String message) async {
     final client = state.client;
     if (client == null) return;
     final url = Uri.parse("http://localhost:$port/chat");
     try {
       final request = await client.postUrl(url);
-      // Create a JSON payload. You can modify the 'user' field as needed.
       final String userName = state.first ? "Player 1" : "Player 2";
       final payload = jsonEncode({"message": message, "user": userName});
       request.headers.contentType = ContentType.json;
@@ -320,39 +318,44 @@ class GamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final playerController = context.read<PlayerController>();
-    String outtext =
-        playerController.state.mState == PlayerState.setupboard
-            ? "Set up your board, tap on the right buttons \n to use your pieces"
-            : playerController.state.mState == PlayerState.waiting
-            ? "Waiting for opponent"
-            : playerController.state.mState == PlayerState.myTurn
-            ? "Your Turn, move a piece"
-            : playerController.state.mState == PlayerState.opponentTurn
-            ? "Waiting for opponent..."
-            : "Game Over";
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(outtext),
-        // You can add actions, leading icons, etc.
-      ),
-      body: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacementNamed("chat");
-            },
-            child: const Text("Chat"),
+    return BlocBuilder<PlayerController, Player>(
+      builder: (context, state) {
+        final playerController = context.read<PlayerController>();
+        String outtext =
+            playerController.state.mState == PlayerState.setupboard
+                ? "Set up your board, tap on the right buttons \n to use your pieces"
+                : playerController.state.mState == PlayerState.waiting
+                ? "Waiting for opponent"
+                : playerController.state.mState == PlayerState.myTurn
+                ? "Your Turn, move a piece"
+                : playerController.state.mState == PlayerState.opponentTurn
+                ? "Waiting for opponent..."
+                : "Game Over";
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(outtext),
+            // You can add actions, leading icons, etc.
           ),
-          SizedBox(width: 50, height: double.infinity),
-          if (playerController.state.mState == PlayerState.setupboard)
-            GameSetUpLayout(),
-          if (playerController.state.mState == PlayerState.setupboard)
-            SizedBox(width: 50, height: double.infinity),
-          if (playerController.state.mState == PlayerState.setupboard) BagUI(),
-        ],
-      ),
+          body: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushReplacementNamed("chat");
+                },
+                child: const Text("Chat"),
+              ),
+              SizedBox(width: 50, height: double.infinity),
+              if (playerController.state.mState == PlayerState.setupboard)
+                GameSetUpLayout(),
+              if (playerController.state.mState == PlayerState.setupboard)
+                SizedBox(width: 50, height: double.infinity),
+              if (playerController.state.mState == PlayerState.setupboard)
+                BagUI(),
+            ],
+          ),
+        );
+      },
     );
   }
 }

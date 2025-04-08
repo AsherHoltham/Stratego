@@ -3,6 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'main.dart';
 import 'game_data.dart';
 
+const Color tanColor = Color(0xfff2d2a8);
+const Color greyColor = Color(0xff9f9b96);
+const Color redColor = Color(0xffb52525);
+const Color turquoiseBlue = Color(0xFF40E0D0);
+
 class GameSetUpLayout extends StatelessWidget {
   const GameSetUpLayout({super.key});
 
@@ -59,7 +64,7 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
 
   void updateBag(int sprite, int selectedBoardIndex) {
     if (selectedBoardIndex >= 60 &&
-        state.mData.mPieces[selectedBoardIndex] == 0 &&
+        state.mData.mPieces[selectedBoardIndex] == 15 &&
         state.mPieces.containsKey(sprite) &&
         state.mPieces[sprite]! > 0) {
       final updatedPieces = Map<int, int>.from(state.mPieces);
@@ -95,9 +100,9 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
   }
 
   void sendData() async {
-    playerController.initGame(state.mData);
     await playerController.sendGameData();
     playerController.getGameData();
+    playerController.initGame(state.mData);
   }
 
   void toggleHeatMap(int sprite) {
