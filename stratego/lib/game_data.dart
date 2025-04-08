@@ -60,9 +60,7 @@ class BoardData {
     //   mPieces[i] = 15; // opponent pieces
     // }
   }
-  BoardData(List<int> data) {
-    mPieces = data;
-  }
+  BoardData.withPieces(this.mPieces);
 }
 
 class SoldierTile extends StatelessWidget {
@@ -154,8 +152,7 @@ class PixelGrid extends StatelessWidget {
 //void main() => runApp(const TestApp());
 
 class GameLayout extends StatelessWidget {
-  final BoardData gameData;
-  const GameLayout(this.gameData, {super.key});
+  const GameLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +166,7 @@ class GameLayout extends StatelessWidget {
           child: SizedBox(
             width: totalSize,
             height: totalSize,
-            child: PixelGrid(boardData: gameData.mPieces),
+            child: PixelGrid(boardData: state.mData.mPieces),
           ),
         );
       },
@@ -245,66 +242,20 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
         heatMapBoard[i] = 15;
       }
     }
-    emit(
-      SetUpBoard(true, sprite, state.emptyPieces, state.mPieces, heatMapBoard),
-    );
+    final newData = BoardData.withPieces(heatMapBoard);
+    emit(SetUpBoard(true, sprite, state.emptyPieces, state.mPieces, newData));
   }
 
   void untoggleHeatMap() {
-    final updatedPieces = Map<int, int>.from(state.mPieces);
+    final undoHeatmap = List<int>.from(state.mData.mPieces);
     for (int i = 60; i < 100; i++) {
-      if (updatedPieces[i] == 15) {
-        updatedPieces[i] = 0;
+      if (undoHeatmap[i] == 15) {
+        undoHeatmap[i] = 0;
       }
     }
-    emit(SetUpBoard(false, 14, state.emptyPieces, updatedPieces, state.mData));
-  }
-}
+    final newData = BoardData.withPieces(undoHeatmap);
 
-class BagTile extends StatelessWidget {
-  final int mIndex;
-  const BagTile(this.mIndex, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<SetUpBoardController, SetUpBoard>(
-      builder: (context, state) {
-        // Choose widget depending on whether the mIndex matches the selectedPiece in the state.
-        if (mIndex == state.selectedPiece) {
-          return Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: turquoiseBlue, width: 2.0),
-            ),
-            height: 45,
-            width: 45,
-            child:
-                mIndex < 10
-                    ? Container(
-                      decoration: BoxDecoration(color: tanColor),
-                      height: 45,
-                      width: 45,
-                      child: Text(
-                        " $mIndex",
-                        style: const TextStyle(fontSize: 35, color: redColor),
-                      ),
-                    )
-                    : SizedBox(child: assetMap[mIndex]),
-          );
-        } else {
-          return mIndex < 10
-              ? Container(
-                decoration: BoxDecoration(color: tanColor),
-                height: 45,
-                width: 45,
-                child: Text(
-                  " $mIndex",
-                  style: const TextStyle(fontSize: 35, color: redColor),
-                ),
-              )
-              : SizedBox(child: assetMap[mIndex]);
-        }
-      },
-    );
+    emit(SetUpBoard(false, 14, state.emptyPieces, state.mPieces, newData));
   }
 }
 
@@ -314,27 +265,46 @@ class NineByNinePixelWidgetBag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          mSprite == 14 || mSprite == 15
-              ? SoldierTile(mSprite)
-              : mSprite >= 10 || mSprite == 0
-              ? SizedBox(child: assetMap[mSprite])
-              : SoldierTile(mSprite),
-          SizedBox(
-            height: 45.0,
-            width: 45.0,
-            child: Text(
-              " ${playerPieces[mSprite]}",
-              style: TextStyle(fontSize: 35, color: turquoiseBlue),
-            ),
+    return BlocBuilder<SetUpBoardController, SetUpBoard>(
+      builder: (context, state) {
+        return Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              mSprite == 14 || mSprite == 15
+                  ? SoldierTile(mSprite)
+                  : mSprite >= 10 || mSprite == 0
+                  ? SizedBox(child: assetMap[mSprite])
+                  : SoldierTile(mSprite),
+              SizedBox(
+                height: 45.0,
+                width: 45.0,
+                child:
+                    mSprite == state.selectedPiece
+                        ? Container(
+                          decoration: BoxDecoration(
+                            color: turquoiseBlue,
+                            border: Border.all(
+                              color: turquoiseBlue,
+                              width: 2.0,
+                            ),
+                          ),
+                          child: Text(
+                            " ${playerPieces[mSprite]}",
+                            style: TextStyle(fontSize: 35, color: Colors.black),
+                          ),
+                        )
+                        : Text(
+                          " ${playerPieces[mSprite]}",
+                          style: TextStyle(fontSize: 35, color: turquoiseBlue),
+                        ),
+              ),
+            ],
           ),
-        ],
-      ),
-      //},
-      //),
+          //},
+          //),
+        );
+      },
     );
   }
 }
@@ -348,45 +318,94 @@ class BagUI extends StatelessWidget {
     final int gridSize = 12;
     final double cellSize = 45.0;
     final double totalSize = gridSize * cellSize;
-
-    return Column(
-      children: [
-        Center(
-          child: SizedBox(
-            width: cellSize * 2,
-            height: totalSize,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(gridSize, (index) {
-                return GestureDetector(
-                  onTap: () {
-                    print("Tapped");
-                    print("${boardController.state.pieceSelected}");
-                    print("${boardController.state.selectedPiece}");
-
-                    if (!boardController.state.pieceSelected) {
-                      boardController.toggleHeatMap(
-                        index + 1 > 10 ? index + 2 : index + 1,
-                      );
-                    }
-                    // Handle tap on individual grid cell if needed.
-                    // highlight yellow pieces the ones in their border that index at 0
-                    //set bool to true so that if clicked on the grid it places the piece and decrements
-                  },
-                  child: ClipOval(
-                    child: NineByNinePixelWidgetBag(
-                      index + 1 > 10 ? index + 2 : index + 1,
-                    ),
-                  ),
-                );
-              }),
+    return BlocBuilder<SetUpBoardController, SetUpBoard>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            Center(
+              child: SizedBox(
+                width: cellSize * 2,
+                height: totalSize,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(gridSize, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        if (!boardController.state.pieceSelected) {
+                          boardController.toggleHeatMap(
+                            index + 1 > 10 ? index + 2 : index + 1,
+                          );
+                        }
+                        // Handle tap on individual grid cell if needed.
+                        // highlight yellow pieces the ones in their border that index at 0
+                        //set bool to true so that if clicked on the grid it places the piece and decrements
+                      },
+                      child: ClipOval(
+                        child: NineByNinePixelWidgetBag(
+                          index + 1 > 10 ? index + 2 : index + 1,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
+
+// class BagTile extends StatelessWidget {
+//   final int mIndex;
+//   const BagTile(this.mIndex, {super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return BlocBuilder<SetUpBoardController, SetUpBoard>(
+//       builder: (context, state) {
+//         // Choose widget depending on whether the mIndex matches the selectedPiece in the state.
+//         if (mIndex == state.selectedPiece) {
+//           print("Here 1");
+//           return Container(
+//             decoration: BoxDecoration(
+//               border: Border.all(color: Colors.black, width: 2.0),
+//             ),
+//             height: 45,
+//             width: 45,
+//             child:
+//                 mIndex < 10
+//                     ? Container(
+//                       decoration: BoxDecoration(color: tanColor),
+//                       height: 45,
+//                       width: 45,
+//                       child: Text(
+//                         " $mIndex",
+//                         style: const TextStyle(fontSize: 35, color: redColor),
+//                       ),
+//                     )
+//                     : SizedBox(child: assetMap[mIndex]),
+//           );
+//         } else {
+//           print("Here 2");
+
+//           return mIndex < 10
+//               ? Container(
+//                 decoration: BoxDecoration(color: tanColor),
+//                 height: 45,
+//                 width: 45,
+//                 child: Text(
+//                   " $mIndex",
+//                   style: const TextStyle(fontSize: 35, color: redColor),
+//                 ),
+//               )
+//               : SizedBox(child: assetMap[mIndex]);
+//         }
+//       },
+//     );
+//   }
+// }
 
 // class Dot extends Positioned {
 //   Dot({super.key, super.top, super.left})

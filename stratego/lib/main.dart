@@ -233,7 +233,7 @@ class GamePage extends StatelessWidget {
             child: const Text("Chat"),
           ),
           SizedBox(width: 50, height: double.infinity),
-          GameLayout(playerController.state.mGameData),
+          GameLayout(),
           SizedBox(width: 50, height: double.infinity),
           BagUI(),
         ],
