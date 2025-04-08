@@ -7,12 +7,16 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 50040;
+const port = 52655;
 
 class TileType {
   final int pieceVal;
-  final int type; // 0 is ambient, 1: player 1, 2: player 2
+  final int type;
   TileType(this.pieceVal, this.type);
+
+  Map<String, dynamic> toJson() {
+    return {'pieceVal': pieceVal, 'type': type};
+  }
 }
 
 class GameData {
@@ -29,16 +33,11 @@ class GameData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'mData':
-          mData
-              .map((tile) => {'pieceVal': tile.pieceVal, 'type': tile.type})
-              .toList(),
-    };
+    return {'mData': mData.map((tile) => tile.toJson()).toList()};
   }
 
   void rotate180() {
-    List<TileType> copy = mData;
+    List<TileType> copy = List.from(mData);
     for (int row = 0; row < 10; row++) {
       for (int col = 0; col < 10; col++) {
         int srcIndex = row * 10 + col;

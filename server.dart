@@ -3,32 +3,43 @@ import 'dart:io';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
+import 'dart:async';
 
 class ChatLog {
   Map<String, String> mLog = {};
 }
 
 class GameData {
-  Map<int, TileType> mData = {};
-  Map<int, TileType> p1Data = {};
-  Map<int, TileType> p2Data = {};
+  List<TileType> mData = [];
+  List<TileType> p1Data = [];
+  List<TileType> p2Data = [];
   bool recBoardConfig1 = false;
   bool recBoardConfig2 = false;
+
+  Completer<void> _bothDataCompleter = Completer<void>();
+
   GameData();
+
+  Future<void> waitForBothPlayers() => _bothDataCompleter.future;
 
   void mergeAndStartGame() {
     for (int p2Index = 0; p2Index < 60; p2Index++) {
       final tile = p2Data[p2Index];
-      if (tile != null) {
-        mData[p2Index] = TileType(tile.pieceVal, tile.type);
-      }
+      mData[p2Index] = TileType(tile.pieceVal, tile.type);
+    }
+    for (int p1Index = 60; p1Index < 100; p1Index++) {
+      final tile = p1Data[p1Index];
+      mData[p1Index] = TileType(tile.pieceVal, tile.type);
+    }
+    if (!_bothDataCompleter.isCompleted) {
+      _bothDataCompleter.complete();
     }
   }
 }
 
 class TileType {
   int pieceVal;
-  int type; // 0 is ambient, 1: player 1, 2: player 2
+  int type;
   TileType(this.pieceVal, this.type);
 }
 
@@ -61,18 +72,34 @@ Future<Response> gameController(Request request, GameData gameData) async {
   } else if (request.method == 'POST') {
     final playerID = request.headers['id'];
     final payload = await request.readAsString();
-    final Map<int, TileType> data = jsonDecode(payload);
-    if (!gameData.recBoardConfig1 && playerID == 'p1') {
+    final List<dynamic> rawData = jsonDecode(payload);
+    final List<TileType> data = rawData.map<TileType>((tile) {
+      return TileType(tile['pieceVal'] as int, tile['type'] as int);
+    }).toList();
+    if (playerID == 'p1' && !gameData.recBoardConfig1) {
+      print("here");
       gameData.recBoardConfig1 = true;
       gameData.p1Data = data;
-      if (gameData.recBoardConfig2) {}
-    } //TODO
-    if (!gameData.recBoardConfig2 && playerID == 'p2') {
+      print("${data.toString()}");
+    } else if (playerID == 'p2' && !gameData.recBoardConfig2) {
       gameData.recBoardConfig2 = true;
       gameData.p2Data = data;
-    } //TODO
-    gameData.mData = data;
-    return Response.ok('Received game POST with payload: $payload');
+    } else {
+      gameData.mData = data;
+    }
+    if (gameData.recBoardConfig1 && gameData.recBoardConfig2) {
+      gameData.mergeAndStartGame();
+    }
+    await gameData.waitForBothPlayers();
+
+    final responseData = {
+      'message': 'data',
+      'data': gameData.mData.asMap().map((key, tile) => MapEntry(
+          key.toString(), {'pieceVal': tile.pieceVal, 'type': tile.type}))
+    };
+
+    return Response.ok(jsonEncode(responseData),
+        headers: {'Content-Type': 'application/json'});
   } else {
     return Response(405, body: 'Method not allowed');
   }
@@ -88,7 +115,6 @@ void main(List<String> args) async {
   router.get('/game', (Request request) => gameController(request, gameData));
   router.post('/game', (Request request) => gameController(request, gameData));
 
-  // Construct a pipeline that adds logging middleware.
   var handler = Pipeline().addMiddleware(logRequests()).addHandler(router);
 
   final port = int.parse(Platform.environment['APP_PORT'] ?? '8080');

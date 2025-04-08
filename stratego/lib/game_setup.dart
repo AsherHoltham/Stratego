@@ -100,7 +100,6 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
   void sendData() async {
     playerController.initGameData(state.mData);
     await playerController.sendGameData();
-    playerController.getGameData();
   }
 
   void toggleHeatMap(int sprite) {
