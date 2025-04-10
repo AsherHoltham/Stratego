@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'main.dart';
 import 'game_setup.dart';
 
 const Color tanColor = Color(0xfff2d2a8);

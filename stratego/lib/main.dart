@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 62628;
+const port = 51445;
 
 class TileType {
   final int pieceVal;
@@ -105,6 +105,43 @@ class PlayerController extends Cubit<Player> {
       ),
     );
   }
+
+  // void toggleHeatMap(int boardIndex) {
+  //   if (state.myTurn) {
+  //     final heatMapBoard = List<int>.from(state.mData.mPieces);
+  //     final int right = boardIndex + 1;
+  //     final int left = boardIndex - 1;
+  //     final int below = boardIndex + 10;
+  //     final int above = boardIndex - 10;
+  //     if (right % 10 != 0 && heatMapBoard[right] == 0) heatMapBoard[right] = 15;
+  //     if (left % 10 != 9 && heatMapBoard[left] == 0) heatMapBoard[left] = 15;
+  //     if (below < 100 && heatMapBoard[below] == 0) heatMapBoard[below] = 15;
+  //     if (above >= 0 && heatMapBoard[above] == 0) heatMapBoard[above] = 15;
+
+  //     final newData = BoardData.withPieces(heatMapBoard);
+  //     emit(
+  //       Game(
+  //         state.myTurn,
+  //         true,
+  //         newData.mPieces[boardIndex],
+  //         state.mPieces,
+  //         newData,
+  //       ),
+  //     );
+  //   }
+  // }
+
+  // void untoggleHeatMap() {
+  //   final undoHeatmap = List<int>.from(state.mData.mPieces);
+  //   for (int i = 0; i < 100; i++) {
+  //     if (undoHeatmap[i] == 15) {
+  //       undoHeatmap[i] = 0;
+  //     }
+  //   }
+  //   final newData = BoardData.withPieces(undoHeatmap);
+
+  //   emit(Game(state.myTurn, false, 14, state.mPieces, newData));
+  // }
 
   void initGameData(BoardData data) {
     GameData newData = GameData([]);
@@ -401,6 +438,9 @@ class GamePage extends StatelessWidget {
                 SizedBox(width: 50, height: double.infinity),
               if (playerController.state.mState == PlayerState.setupboard)
                 BagUI(),
+              if (playerController.state.mState == PlayerState.myTurn ||
+                  playerController.state.mState == PlayerState.opponentTurn)
+                GameLayout(),
             ],
           ),
         );

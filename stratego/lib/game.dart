@@ -1,64 +1,129 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'main.dart';
-import 'game_setup.dart';
 import 'game_data.dart';
 
-class Game {
-  bool myTurn;
-  bool pieceSelected;
-  int selectedPiece;
-  Map<int, int> mPieces;
-  BoardData mData;
-  Game(
-    this.myTurn,
-    this.pieceSelected,
-    this.selectedPiece,
-    this.mPieces,
-    this.mData,
-  );
+const Color tanColor = Color(0xfff2d2a8);
+const Color greyColor = Color(0xff9f9b96);
+const Color redColor = Color(0xffb52525);
+const Color turquoiseBlue = Color(0xFF40E0D0);
+
+class GameLayout extends StatelessWidget {
+  const GameLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PlayerController, Player>(
+      builder: (context, state) {
+        final int gridSize = 10;
+        final double cellSize = 45.0;
+        final double totalSize = gridSize * cellSize;
+
+        return Center(
+          child: SizedBox(
+            width: totalSize,
+            height: totalSize,
+            child: PixelGridGame(boardData: state.mGameData.mData),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class TurnController extends Cubit<Game> {
-  TurnController()
-    : super(
-        Game(false, false, 14, Map<int, int>.from(playerPieces), BoardData()),
-      ); //TODO Fix so that my turn init via player controller
+class PixelGridGame extends StatelessWidget {
+  final List<TileType> boardData;
 
-  void toggleHeatMap(int boardIndex) {
-    if (state.myTurn) {
-      final heatMapBoard = List<int>.from(state.mData.mPieces);
-      final int right = boardIndex + 1;
-      final int left = boardIndex - 1;
-      final int below = boardIndex + 10;
-      final int above = boardIndex - 10;
-      if (right % 10 != 0 && heatMapBoard[right] == 0) heatMapBoard[right] = 15;
-      if (left % 10 != 9 && heatMapBoard[left] == 0) heatMapBoard[left] = 15;
-      if (below < 100 && heatMapBoard[below] == 0) heatMapBoard[below] = 15;
-      if (above >= 0 && heatMapBoard[above] == 0) heatMapBoard[above] = 15;
+  const PixelGridGame({super.key, required this.boardData});
 
-      final newData = BoardData.withPieces(heatMapBoard);
-      emit(
-        Game(
-          state.myTurn,
-          true,
-          newData.mPieces[boardIndex],
-          state.mPieces,
-          newData,
-        ),
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    const int gridSize = 10;
+    return BlocBuilder<PlayerController, Player>(
+      builder: (context, state) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(gridSize, (row) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(gridSize, (col) {
+                int index = row * gridSize + col;
+                return GestureDetector(
+                  onTap: () {
+                    // if (state.pieceSelected) {
+                    //   boardController.updateBag(state.selectedPiece, index);
+                    // }
+                  },
+                  child: GameTileUI(
+                    boardData[index],
+                    index,
+                    state.mPlayerID == "Player1" ? 1 : 2,
+                  ),
+                );
+              }),
+            );
+          }),
+        );
+      },
+    );
   }
+}
 
-  void untoggleHeatMap() {
-    final undoHeatmap = List<int>.from(state.mData.mPieces);
-    for (int i = 0; i < 100; i++) {
-      if (undoHeatmap[i] == 15) {
-        undoHeatmap[i] = 0;
-      }
-    }
-    final newData = BoardData.withPieces(undoHeatmap);
+class GameTileUI extends StatelessWidget {
+  final TileType mSprite;
+  final int index;
+  final int playerType;
+  const GameTileUI(this.mSprite, this.index, this.playerType, {super.key});
 
-    emit(Game(state.myTurn, false, 14, state.mPieces, newData));
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child:
+          mSprite.type == playerType || mSprite.type == 0 || mSprite.type == 11
+              ? (mSprite.pieceVal >= 10 || mSprite.pieceVal == 0) &&
+                      mSprite.pieceVal != 15
+                  ? SizedBox(child: assetMap[mSprite.pieceVal])
+                  : SoldierTile(mSprite.pieceVal)
+              : SoldierTile(14),
+    );
+  }
+}
+
+class PaintedTile extends StatelessWidget {
+  final int mIndex;
+  const PaintedTile(this.mIndex, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return mIndex == 15
+        ? Container(
+          decoration: BoxDecoration(
+            color: (turquoiseBlue),
+            border: Border.all(color: Colors.black, width: 1.0),
+          ),
+          height: 45,
+          width: 45,
+        )
+        : mIndex == 14
+        ? Container(
+          decoration: BoxDecoration(
+            color: (greyColor),
+            border: Border.all(color: Colors.black),
+          ),
+          height: 45,
+          width: 45,
+        )
+        : Container(
+          decoration: BoxDecoration(color: (tanColor)),
+          height: 45,
+          width: 45,
+          child: Text(
+            " $mIndex",
+            style: TextStyle(
+              fontSize: 35, // Adjust font size as needed
+              color: redColor,
+            ),
+          ),
+        );
   }
 }
