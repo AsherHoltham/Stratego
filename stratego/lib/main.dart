@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 52655;
+const port = 60848;
 
 class TileType {
   final int pieceVal;
@@ -53,23 +53,29 @@ enum PlayerState { setupboard, waiting, opponentTurn, myTurn }
 class Player {
   HttpClient? client;
   Map<String, String> mChatLog;
-  bool first;
+  String mPlayerID;
   GameData mGameData;
   PlayerState mState;
-  Player(this.client, this.mChatLog, this.first, this.mGameData, this.mState);
+  Player(
+    this.client,
+    this.mChatLog,
+    this.mPlayerID,
+    this.mGameData,
+    this.mState,
+  );
 }
 
 class PlayerController extends Cubit<Player> {
   PlayerController()
-    : super(Player(null, {}, true, GameData([]), PlayerState.setupboard)) {
+    : super(Player(null, {}, "Player1", GameData([]), PlayerState.setupboard)) {
     connect();
   }
-  void playerSelect(bool first) {
+  void playerSelect(String mPlayerID) {
     emit(
       Player(
         state.client,
         state.mChatLog,
-        first,
+        mPlayerID,
         state.mGameData,
         state.mState,
       ),
@@ -81,7 +87,7 @@ class PlayerController extends Cubit<Player> {
       Player(
         state.client,
         state.mChatLog,
-        state.first,
+        state.mPlayerID,
         state.mGameData,
         PlayerState.opponentTurn,
       ),
@@ -90,7 +96,7 @@ class PlayerController extends Cubit<Player> {
 
   void initGameData(BoardData data) {
     GameData newData = GameData([]);
-    int playerType = state.first ? 1 : 2;
+    int playerType = state.mPlayerID == "Player1" ? 1 : 2;
     for (int i = 0; i < 100; i++) {
       if (data.mPieces[i] == 11) {
         newData.mData.add(TileType(11, 0));
@@ -108,7 +114,7 @@ class PlayerController extends Cubit<Player> {
       Player(
         state.client,
         state.mChatLog,
-        state.first,
+        state.mPlayerID,
         newData,
         PlayerState.waiting,
       ),
@@ -120,7 +126,7 @@ class PlayerController extends Cubit<Player> {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client, {}, state.first, state.mGameData, state.mState));
+    emit(Player(client, {}, state.mPlayerID, state.mGameData, state.mState));
   }
 
   /// FINISHED
@@ -141,7 +147,7 @@ class PlayerController extends Cubit<Player> {
         Player(
           state.client,
           chatMap,
-          state.first,
+          state.mPlayerID,
           state.mGameData,
           state.mState,
         ),
@@ -160,7 +166,7 @@ class PlayerController extends Cubit<Player> {
     final url = Uri.parse("http://localhost:$port/chat");
     try {
       final request = await client.postUrl(url);
-      final String userName = state.first ? "p1" : "p2";
+      final String userName = state.mPlayerID;
       final payload = jsonEncode({"message": message, "user": userName});
       request.headers.contentType = ContentType.json;
       request.write(payload);
@@ -186,7 +192,7 @@ class PlayerController extends Cubit<Player> {
         Player(
           state.client,
           state.mChatLog,
-          state.first,
+          state.mPlayerID,
           gameData,
           state.mState,
         ),
@@ -204,9 +210,15 @@ class PlayerController extends Cubit<Player> {
     final url = Uri.parse("http://localhost:$port/game");
     try {
       final request = await client.postUrl(url);
-      final String userName = state.first ? "p1" : "p2";
-      request.headers.add("id", userName);
-      final payload = jsonEncode(state.mGameData.mData);
+      final String userName = state.mPlayerID;
+      //request.headers.add("id", userName);
+      print(userName);
+      final payload = jsonEncode({
+        "data": state.mGameData.mData,
+        "user": userName,
+      });
+      print(userName);
+
       request.headers.contentType = ContentType.json;
       request.write(payload);
       final response = await request.close();
@@ -237,7 +249,7 @@ class RouterApp {
           final playerController = BlocProvider.of<PlayerController>(context);
           return MultiBlocProvider(
             providers: [
-              BlocProvider<PlayerController>.value(value: playerController),
+              //BlocProvider<PlayerController>.value(value: playerController),
               BlocProvider<SetUpBoardController>(
                 create:
                     (_) => SetUpBoardController(
@@ -288,19 +300,16 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
-
-  final PlayerController controller = PlayerController();
-
-  // Create the router, passing the same cubit.
-  late final RouterApp router = RouterApp(controller: controller);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final playerController = BlocProvider.of<PlayerController>(context);
+    final router = RouterApp(controller: playerController);
     return MaterialApp(
       title: 'Game App',
       onGenerateRoute: router.genRoute,
-      home: BlocProvider.value(value: controller, child: const GameLaunch()),
+      home: const GameLaunch(),
     );
   }
 }
@@ -317,7 +326,7 @@ class GameLaunch extends StatelessWidget {
         children: [
           ElevatedButton(
             onPressed: () {
-              playerController.playerSelect(true);
+              playerController.playerSelect("Player1");
               Navigator.of(context).pushNamed("game");
             },
             child: const Text("Player 1"),
@@ -325,7 +334,7 @@ class GameLaunch extends StatelessWidget {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              playerController.playerSelect(false);
+              playerController.playerSelect("Player2");
               Navigator.of(context).pushNamed("game");
             },
             child: const Text("Player 2"),

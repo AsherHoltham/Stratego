@@ -17,19 +17,25 @@ class GameData {
   bool recBoardConfig2 = false;
 
   Completer<void> _bothDataCompleter = Completer<void>();
-
-  GameData();
+  GameData() {
+    mData = List<TileType>.filled(100, TileType(0, 0), growable: false);
+  }
 
   Future<void> waitForBothPlayers() => _bothDataCompleter.future;
 
   void mergeAndStartGame() {
-    for (int p2Index = 0; p2Index < 60; p2Index++) {
-      final tile = p2Data[p2Index];
-      mData[p2Index] = TileType(tile.pieceVal, tile.type);
+    // Make sure the merged list has exactly 100 elements.
+    mData = List<TileType>.filled(100, TileType(0, 0), growable: false);
+    // Ensure the incoming data has expected lengths.
+    if (p2Data.length < 60 || p1Data.length < 40) {
+      throw StateError("Insufficient tile data for merging");
     }
-    for (int p1Index = 60; p1Index < 100; p1Index++) {
-      final tile = p1Data[p1Index];
-      mData[p1Index] = TileType(tile.pieceVal, tile.type);
+    for (int i = 0; i < 60; i++) {
+      mData[i] = TileType(p2Data[i].pieceVal, p2Data[i].type);
+    }
+    // Note: If p1Data represents exactly 40 tiles, then iterate accordingly.
+    for (int i = 0; i < 40; i++) {
+      mData[60 + i] = TileType(p1Data[i].pieceVal, p1Data[i].type);
     }
     if (!_bothDataCompleter.isCompleted) {
       _bothDataCompleter.complete();
@@ -70,18 +76,19 @@ Future<Response> gameController(Request request, GameData gameData) async {
     return Response.ok(responseBody,
         headers: {'Content-Type': 'application/json'});
   } else if (request.method == 'POST') {
-    final playerID = request.headers['id'];
     final payload = await request.readAsString();
-    final List<dynamic> rawData = jsonDecode(payload);
+    final Map<String, dynamic> fdata = jsonDecode(payload);
+    final String playerID = fdata["user"];
+    final List<dynamic> rawData = fdata["data"];
     final List<TileType> data = rawData.map<TileType>((tile) {
       return TileType(tile['pieceVal'] as int, tile['type'] as int);
     }).toList();
-    if (playerID == 'p1' && !gameData.recBoardConfig1) {
-      print("here");
+    if (playerID == 'Player1' && !gameData.recBoardConfig1) {
+      print("p1");
       gameData.recBoardConfig1 = true;
       gameData.p1Data = data;
-      print("${data.toString()}");
-    } else if (playerID == 'p2' && !gameData.recBoardConfig2) {
+    } else if (playerID == 'Player2' && !gameData.recBoardConfig2) {
+      print("p2");
       gameData.recBoardConfig2 = true;
       gameData.p2Data = data;
     } else {
