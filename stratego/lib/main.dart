@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 60848;
+const port = 53651;
 
 class TileType {
   final int pieceVal;
@@ -105,9 +105,6 @@ class PlayerController extends Cubit<Player> {
       } else {
         newData.mData.add(TileType(data.mPieces[i], playerType));
       }
-    }
-    if (playerType == 2) {
-      newData.rotate180();
     }
 
     emit(
@@ -213,6 +210,9 @@ class PlayerController extends Cubit<Player> {
       final String userName = state.mPlayerID;
       //request.headers.add("id", userName);
       print(userName);
+      if (state.mPlayerID == "Player2") {
+        state.mGameData.rotate180();
+      }
       final payload = jsonEncode({
         "data": state.mGameData.mData,
         "user": userName,
@@ -223,6 +223,7 @@ class PlayerController extends Cubit<Player> {
       request.write(payload);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
+
       print("Response from server: $responseBody");
     } catch (e) {
       print("Error sending data: $e");

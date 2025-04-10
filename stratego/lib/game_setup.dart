@@ -81,9 +81,7 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
       if (newCount == 0) {
         updatedEmptyPieces[sprite] = true;
       }
-      if (updatedEmptyPieces.values.every((value) => value == true)) {
-        sendData();
-      }
+
       emit(
         SetUpBoard(
           false,
@@ -93,7 +91,11 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
           updatedBoardData,
         ),
       );
+
       untoggleHeatMap();
+      if (state.emptyPieces.values.every((value) => value == true)) {
+        sendData();
+      }
     }
   }
 

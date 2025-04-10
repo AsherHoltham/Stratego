@@ -24,18 +24,20 @@ class GameData {
   Future<void> waitForBothPlayers() => _bothDataCompleter.future;
 
   void mergeAndStartGame() {
-    // Make sure the merged list has exactly 100 elements.
     mData = List<TileType>.filled(100, TileType(0, 0), growable: false);
-    // Ensure the incoming data has expected lengths.
-    if (p2Data.length < 60 || p1Data.length < 40) {
-      throw StateError("Insufficient tile data for merging");
-    }
-    for (int i = 0; i < 60; i++) {
-      mData[i] = TileType(p2Data[i].pieceVal, p2Data[i].type);
-    }
-    // Note: If p1Data represents exactly 40 tiles, then iterate accordingly.
+
+    int index = 0;
     for (int i = 0; i < 40; i++) {
-      mData[60 + i] = TileType(p1Data[i].pieceVal, p1Data[i].type);
+      mData[index] = TileType(p2Data[i].pieceVal, p2Data[i].type);
+      index++;
+    }
+    for (int i = 0; i < 20; i++) {
+      mData[index] = TileType(p2Data[i + 40].pieceVal, p2Data[i + 40].type);
+      index++;
+    }
+    for (int i = 0; i < 40; i++) {
+      mData[index] = TileType(p1Data[i + 60].pieceVal, p1Data[i + 60].type);
+      index++;
     }
     if (!_bothDataCompleter.isCompleted) {
       _bothDataCompleter.complete();
