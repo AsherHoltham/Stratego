@@ -49,6 +49,13 @@ class TileType {
   int pieceVal;
   int type;
   TileType(this.pieceVal, this.type);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'pieceVal': pieceVal,
+      'type': type,
+    };
+  }
 }
 
 Future<Response> chatController(Request request, ChatLog log) async {
@@ -71,9 +78,11 @@ Future<Response> chatController(Request request, ChatLog log) async {
 
 Future<Response> gameController(Request request, GameData gameData) async {
   if (request.method == 'GET') {
+    await gameData.waitForBothPlayers();
+
     final responseBody = jsonEncode({
       'headers': 'game',
-      'context': gameData.mData,
+      'context': gameData.mData.map((tile) => tile.toJson()).toList(),
     });
     return Response.ok(responseBody,
         headers: {'Content-Type': 'application/json'});

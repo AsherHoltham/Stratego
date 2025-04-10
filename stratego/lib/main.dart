@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 53651;
+const port = 62628;
 
 class TileType {
   final int pieceVal;
@@ -26,7 +26,7 @@ class GameData {
 
   factory GameData.fromJson(Map<String, dynamic> json) {
     List<TileType> tiles =
-        (json['mData'] as List)
+        (json['context'] as List)
             .map((tile) => TileType(tile['pieceVal'], tile['type']))
             .toList();
     return GameData(tiles);
@@ -90,6 +90,18 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         PlayerState.opponentTurn,
+      ),
+    );
+  }
+
+  void startTurn() {
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.mPlayerID,
+        state.mGameData,
+        PlayerState.myTurn,
       ),
     );
   }
@@ -183,8 +195,13 @@ class PlayerController extends Cubit<Player> {
       final request = await client.getUrl(url);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
+      print("Response from server: $responseBody");
+
       final Map<String, dynamic> decoded = jsonDecode(responseBody);
       final gameData = GameData.fromJson(decoded);
+      if (state.mPlayerID == "Player2") {
+        gameData.rotate180();
+      }
       emit(
         Player(
           state.client,
@@ -223,7 +240,6 @@ class PlayerController extends Cubit<Player> {
       request.write(payload);
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
-
       print("Response from server: $responseBody");
     } catch (e) {
       print("Error sending data: $e");

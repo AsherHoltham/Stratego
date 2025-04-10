@@ -102,6 +102,12 @@ class SetUpBoardController extends Cubit<SetUpBoard> {
   void sendData() async {
     playerController.initGameData(state.mData);
     await playerController.sendGameData();
+    await playerController.getGameData();
+    if (playerController.state.mPlayerID == "Player1") {
+      playerController.startTurn();
+    } else if (playerController.state.mPlayerID == "Player2") {
+      playerController.endTurn();
+    }
   }
 
   void toggleHeatMap(int sprite) {
