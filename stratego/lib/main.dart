@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 51445;
+const port = 57328;
 
 class TileType {
   final int pieceVal;
@@ -56,18 +56,29 @@ class Player {
   String mPlayerID;
   GameData mGameData;
   PlayerState mState;
+  bool mCurrSelectedPiece;
   Player(
     this.client,
     this.mChatLog,
     this.mPlayerID,
     this.mGameData,
     this.mState,
+    this.mCurrSelectedPiece,
   );
 }
 
 class PlayerController extends Cubit<Player> {
   PlayerController()
-    : super(Player(null, {}, "Player1", GameData([]), PlayerState.setupboard)) {
+    : super(
+        Player(
+          null,
+          {},
+          "Player1",
+          GameData([]),
+          PlayerState.setupboard,
+          false,
+        ),
+      ) {
     connect();
   }
   void playerSelect(String mPlayerID) {
@@ -78,6 +89,7 @@ class PlayerController extends Cubit<Player> {
         mPlayerID,
         state.mGameData,
         state.mState,
+        state.mCurrSelectedPiece,
       ),
     );
   }
@@ -90,6 +102,7 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         PlayerState.opponentTurn,
+        state.mCurrSelectedPiece,
       ),
     );
   }
@@ -102,46 +115,66 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         PlayerState.myTurn,
+        state.mCurrSelectedPiece,
       ),
     );
   }
 
-  // void toggleHeatMap(int boardIndex) {
-  //   if (state.myTurn) {
-  //     final heatMapBoard = List<int>.from(state.mData.mPieces);
-  //     final int right = boardIndex + 1;
-  //     final int left = boardIndex - 1;
-  //     final int below = boardIndex + 10;
-  //     final int above = boardIndex - 10;
-  //     if (right % 10 != 0 && heatMapBoard[right] == 0) heatMapBoard[right] = 15;
-  //     if (left % 10 != 9 && heatMapBoard[left] == 0) heatMapBoard[left] = 15;
-  //     if (below < 100 && heatMapBoard[below] == 0) heatMapBoard[below] = 15;
-  //     if (above >= 0 && heatMapBoard[above] == 0) heatMapBoard[above] = 15;
+  void toggleHeatMap(int boardIndex) {
+    if (state.mState == PlayerState.myTurn) {
+      List<TileType> heatMapBoard = List<TileType>.from(state.mGameData.mData);
+      final int right = boardIndex + 1;
+      final int left = boardIndex - 1;
+      final int below = boardIndex + 10;
+      final int above = boardIndex - 10;
+      if (right % 10 != 0 && heatMapBoard[right].pieceVal == 0) {
+        heatMapBoard[right] = TileType(15, heatMapBoard[right].type);
+      }
+      if (left % 10 != 9 && heatMapBoard[left].pieceVal == 0) {
+        heatMapBoard[left] = TileType(15, heatMapBoard[right].type);
+      }
+      if (below < 100 && heatMapBoard[below].pieceVal == 0) {
+        heatMapBoard[below] = TileType(15, heatMapBoard[right].type);
+      }
 
-  //     final newData = BoardData.withPieces(heatMapBoard);
-  //     emit(
-  //       Game(
-  //         state.myTurn,
-  //         true,
-  //         newData.mPieces[boardIndex],
-  //         state.mPieces,
-  //         newData,
-  //       ),
-  //     );
-  //   }
-  // }
+      if (above >= 0 && heatMapBoard[above].pieceVal == 0) {
+        heatMapBoard[above] = TileType(15, heatMapBoard[right].type);
+      }
 
-  // void untoggleHeatMap() {
-  //   final undoHeatmap = List<int>.from(state.mData.mPieces);
-  //   for (int i = 0; i < 100; i++) {
-  //     if (undoHeatmap[i] == 15) {
-  //       undoHeatmap[i] = 0;
-  //     }
-  //   }
-  //   final newData = BoardData.withPieces(undoHeatmap);
+      final newData = GameData(heatMapBoard);
+      emit(
+        Player(
+          state.client,
+          state.mChatLog,
+          state.mPlayerID,
+          newData,
+          state.mState,
+          true,
+        ),
+      );
+    }
+  }
 
-  //   emit(Game(state.myTurn, false, 14, state.mPieces, newData));
-  // }
+  void untoggleHeatMap() {
+    List<TileType> undoHeatmap = List<TileType>.from(state.mGameData.mData);
+    for (int i = 0; i < 100; i++) {
+      if (undoHeatmap[i].pieceVal == 15) {
+        undoHeatmap[i] = TileType(0, undoHeatmap[i].type);
+      }
+    }
+    final newData = GameData(undoHeatmap);
+
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.mPlayerID,
+        newData,
+        state.mState,
+        false,
+      ),
+    );
+  }
 
   void initGameData(BoardData data) {
     GameData newData = GameData([]);
@@ -163,6 +196,7 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         newData,
         PlayerState.waiting,
+        state.mCurrSelectedPiece,
       ),
     );
   }
@@ -172,7 +206,16 @@ class PlayerController extends Cubit<Player> {
     // For HTTP communication, we simply create an HttpClient.
 
     HttpClient client = HttpClient();
-    emit(Player(client, {}, state.mPlayerID, state.mGameData, state.mState));
+    emit(
+      Player(
+        client,
+        {},
+        state.mPlayerID,
+        state.mGameData,
+        state.mState,
+        state.mCurrSelectedPiece,
+      ),
+    );
   }
 
   /// FINISHED
@@ -196,6 +239,7 @@ class PlayerController extends Cubit<Player> {
           state.mPlayerID,
           state.mGameData,
           state.mState,
+          state.mCurrSelectedPiece,
         ),
       );
       return chatMap;
@@ -246,6 +290,7 @@ class PlayerController extends Cubit<Player> {
           state.mPlayerID,
           gameData,
           state.mState,
+          state.mCurrSelectedPiece,
         ),
       );
       return gameData;

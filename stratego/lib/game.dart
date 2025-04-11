@@ -41,6 +41,7 @@ class PixelGridGame extends StatelessWidget {
     const int gridSize = 10;
     return BlocBuilder<PlayerController, Player>(
       builder: (context, state) {
+        final controller = context.read<PlayerController>();
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(gridSize, (row) {
@@ -50,9 +51,11 @@ class PixelGridGame extends StatelessWidget {
                 int index = row * gridSize + col;
                 return GestureDetector(
                   onTap: () {
-                    // if (state.pieceSelected) {
-                    //   boardController.updateBag(state.selectedPiece, index);
-                    // }
+                    if (state.mCurrSelectedPiece) {
+                      controller.toggleHeatMap(index);
+                    } else {
+                      controller.untoggleHeatMap();
+                    }
                   },
                   child: GameTileUI(
                     boardData[index],
