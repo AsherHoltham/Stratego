@@ -24,22 +24,23 @@ class GameData {
   Future<void> waitForBothPlayers() => _bothDataCompleter.future;
 
   void mergeAndStartGame() {
-    mData = List<TileType>.filled(100, TileType(0, 0), growable: false);
-
-    int index = 0;
-    for (int i = 0; i < 40; i++) {
-      mData[index] = TileType(p2Data[i].pieceVal, p2Data[i].type);
-      index++;
-    }
-    for (int i = 0; i < 20; i++) {
-      mData[index] = TileType(p2Data[i + 40].pieceVal, p2Data[i + 40].type);
-      index++;
-    }
-    for (int i = 0; i < 40; i++) {
-      mData[index] = TileType(p1Data[i + 60].pieceVal, p1Data[i + 60].type);
-      index++;
-    }
     if (!_bothDataCompleter.isCompleted) {
+      mData = List<TileType>.filled(100, TileType(0, 0), growable: false);
+
+      int index = 0;
+      for (int i = 0; i < 40; i++) {
+        mData[index] = TileType(p2Data[i].pieceVal, p2Data[i].type);
+        index++;
+      }
+      for (int i = 0; i < 20; i++) {
+        mData[index] = TileType(p2Data[i + 40].pieceVal, p2Data[i + 40].type);
+        index++;
+      }
+      for (int i = 0; i < 40; i++) {
+        mData[index] = TileType(p1Data[i + 60].pieceVal, p1Data[i + 60].type);
+        index++;
+      }
+
       _bothDataCompleter.complete();
     }
   }

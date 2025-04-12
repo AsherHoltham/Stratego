@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 57328;
+const port = 50004;
 
 class TileType {
   final int pieceVal;
@@ -56,13 +56,15 @@ class Player {
   String mPlayerID;
   GameData mGameData;
   PlayerState mState;
-  bool mCurrSelectedPiece;
+  bool mIsCurrSelectedPiece;
+  int mCurrSelectedPiece;
   Player(
     this.client,
     this.mChatLog,
     this.mPlayerID,
     this.mGameData,
     this.mState,
+    this.mIsCurrSelectedPiece,
     this.mCurrSelectedPiece,
   );
 }
@@ -77,6 +79,7 @@ class PlayerController extends Cubit<Player> {
           GameData([]),
           PlayerState.setupboard,
           false,
+          0,
         ),
       ) {
     connect();
@@ -89,6 +92,7 @@ class PlayerController extends Cubit<Player> {
         mPlayerID,
         state.mGameData,
         state.mState,
+        state.mIsCurrSelectedPiece,
         state.mCurrSelectedPiece,
       ),
     );
@@ -102,9 +106,12 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         PlayerState.opponentTurn,
+        false,
         state.mCurrSelectedPiece,
       ),
     );
+    sendGameData();
+    pollForNextTurn();
   }
 
   void startTurn() {
@@ -115,9 +122,86 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         PlayerState.myTurn,
+        false,
         state.mCurrSelectedPiece,
       ),
     );
+  }
+
+  void pollForNextTurn() async {
+    while (true) {
+      await Future.delayed(const Duration(seconds: 1));
+      List<TileType> currData = List<TileType>.from(state.mGameData.mData);
+      GameData data = await getGameData();
+      for (int i = 0; i < 100; i++) {
+        if (data.mData[i].type != currData[i].type) {
+          startTurn();
+          return;
+        }
+      }
+    }
+  }
+
+  void processTurn(int chosenIndex) {
+    List<TileType> newBoard = List<TileType>.from(state.mGameData.mData);
+    final int right = state.mCurrSelectedPiece + 1;
+    final int left = state.mCurrSelectedPiece - 1;
+    final int below = state.mCurrSelectedPiece + 10;
+    final int above = state.mCurrSelectedPiece - 10;
+    bool goodMove = false;
+    if (right == chosenIndex) {
+      if (newBoard[right].pieceVal == 15) {
+        newBoard[right] = TileType(
+          newBoard[state.mCurrSelectedPiece].pieceVal,
+          newBoard[state.mCurrSelectedPiece].type,
+        );
+        goodMove = true;
+      } //else if (newBoard[right].type == 2) {}
+    } else if (left == chosenIndex) {
+      if (newBoard[left].pieceVal == 15) {
+        newBoard[left] = TileType(
+          newBoard[state.mCurrSelectedPiece].pieceVal,
+          newBoard[state.mCurrSelectedPiece].type,
+        );
+        goodMove = true;
+      } //else if (newBoard[left].type == 2) {}
+    } else if (below == chosenIndex) {
+      if (newBoard[below].pieceVal == 15) {
+        newBoard[below] = TileType(
+          newBoard[state.mCurrSelectedPiece].pieceVal,
+          newBoard[state.mCurrSelectedPiece].type,
+        );
+        goodMove = true;
+      } //else if (newBoard[below].type == 2) {}
+    } else if (above == chosenIndex) {
+      if (newBoard[above].pieceVal == 15) {
+        newBoard[above] = TileType(
+          newBoard[state.mCurrSelectedPiece].pieceVal,
+          newBoard[state.mCurrSelectedPiece].type,
+        );
+        goodMove = true;
+      } //else if (newBoard[above].type == 2) {}
+    }
+    if (goodMove) {
+      newBoard[state.mCurrSelectedPiece] = TileType(0, 0);
+    }
+
+    final newData = GameData(newBoard);
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.mPlayerID,
+        newData,
+        state.mState,
+        false,
+        0,
+      ),
+    );
+    untoggleHeatMap();
+    if (goodMove) {
+      endTurn();
+    }
   }
 
   void toggleHeatMap(int boardIndex) {
@@ -150,6 +234,7 @@ class PlayerController extends Cubit<Player> {
           newData,
           state.mState,
           true,
+          boardIndex,
         ),
       );
     }
@@ -172,6 +257,7 @@ class PlayerController extends Cubit<Player> {
         newData,
         state.mState,
         false,
+        state.mCurrSelectedPiece,
       ),
     );
   }
@@ -196,6 +282,7 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         newData,
         PlayerState.waiting,
+        state.mIsCurrSelectedPiece,
         state.mCurrSelectedPiece,
       ),
     );
@@ -213,6 +300,8 @@ class PlayerController extends Cubit<Player> {
         state.mPlayerID,
         state.mGameData,
         state.mState,
+        state.mIsCurrSelectedPiece,
+
         state.mCurrSelectedPiece,
       ),
     );
@@ -239,6 +328,8 @@ class PlayerController extends Cubit<Player> {
           state.mPlayerID,
           state.mGameData,
           state.mState,
+          state.mIsCurrSelectedPiece,
+
           state.mCurrSelectedPiece,
         ),
       );
@@ -290,6 +381,7 @@ class PlayerController extends Cubit<Player> {
           state.mPlayerID,
           gameData,
           state.mState,
+          state.mIsCurrSelectedPiece,
           state.mCurrSelectedPiece,
         ),
       );

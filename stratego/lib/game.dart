@@ -51,10 +51,15 @@ class PixelGridGame extends StatelessWidget {
                 int index = row * gridSize + col;
                 return GestureDetector(
                   onTap: () {
-                    if (state.mCurrSelectedPiece) {
-                      controller.toggleHeatMap(index);
-                    } else {
-                      controller.untoggleHeatMap();
+                    if (state.mState == PlayerState.myTurn) {
+                      if (!state.mIsCurrSelectedPiece) {
+                        controller.toggleHeatMap(index);
+                      } else if (state.mCurrSelectedPiece == index) {
+                        controller.untoggleHeatMap();
+                      } else if (state.mCurrSelectedPiece != index) {
+                        controller.processTurn(index);
+                        controller.untoggleHeatMap();
+                      }
                     }
                   },
                   child: GameTileUI(
