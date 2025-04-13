@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 50004;
+const port = 58225;
 
 class TileType {
   final int pieceVal;
@@ -110,7 +110,6 @@ class PlayerController extends Cubit<Player> {
         state.mCurrSelectedPiece,
       ),
     );
-    sendGameData();
     pollForNextTurn();
   }
 
@@ -132,9 +131,9 @@ class PlayerController extends Cubit<Player> {
     while (true) {
       await Future.delayed(const Duration(seconds: 1));
       List<TileType> currData = List<TileType>.from(state.mGameData.mData);
-      GameData data = await getGameData();
+      await getGameData();
       for (int i = 0; i < 100; i++) {
-        if (data.mData[i].type != currData[i].type) {
+        if (state.mGameData.mData[i].type != currData[i].type) {
           startTurn();
           return;
         }
@@ -142,7 +141,7 @@ class PlayerController extends Cubit<Player> {
     }
   }
 
-  void processTurn(int chosenIndex) {
+  void processTurn(int chosenIndex) async {
     List<TileType> newBoard = List<TileType>.from(state.mGameData.mData);
     final int right = state.mCurrSelectedPiece + 1;
     final int left = state.mCurrSelectedPiece - 1;
@@ -200,6 +199,8 @@ class PlayerController extends Cubit<Player> {
     );
     untoggleHeatMap();
     if (goodMove) {
+      await sendGameData();
+      await getGameData();
       endTurn();
     }
   }
