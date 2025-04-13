@@ -7,7 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'game_setup.dart';
 import 'game_data.dart';
 
-const port = 58225;
+const port = 55112;
 
 class TileType {
   final int pieceVal;
@@ -48,7 +48,7 @@ class GameData {
   }
 }
 
-enum PlayerState { setupboard, waiting, opponentTurn, myTurn }
+enum PlayerState { setupboard, waiting, opponentTurn, myTurn, endGame }
 
 class Player {
   HttpClient? client;
@@ -93,6 +93,20 @@ class PlayerController extends Cubit<Player> {
         state.mGameData,
         state.mState,
         state.mIsCurrSelectedPiece,
+        state.mCurrSelectedPiece,
+      ),
+    );
+  }
+
+  void endGame() {
+    emit(
+      Player(
+        state.client,
+        state.mChatLog,
+        state.mPlayerID,
+        state.mGameData,
+        PlayerState.endGame,
+        false,
         state.mCurrSelectedPiece,
       ),
     );
@@ -148,6 +162,7 @@ class PlayerController extends Cubit<Player> {
     final int below = state.mCurrSelectedPiece + 10;
     final int above = state.mCurrSelectedPiece - 10;
     bool goodMove = false;
+    int opID = state.mPlayerID == "Player2" ? 1 : 2;
     if (right == chosenIndex) {
       if (newBoard[right].pieceVal == 15) {
         newBoard[right] = TileType(
@@ -155,7 +170,29 @@ class PlayerController extends Cubit<Player> {
           newBoard[state.mCurrSelectedPiece].type,
         );
         goodMove = true;
-      } //else if (newBoard[right].type == 2) {}
+      } else if (newBoard[right].type == opID) {
+        if (newBoard[right].pieceVal == 13) {
+          endGame();
+          return;
+        } else if (newBoard[right].pieceVal == 12) {
+          newBoard[right] = TileType(0, 0);
+          goodMove = true;
+        } else if (newBoard[right].pieceVal == 10 &&
+            newBoard[state.mCurrSelectedPiece].pieceVal == 1) {
+          newBoard[right] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        } else if (newBoard[state.mCurrSelectedPiece].pieceVal >=
+            newBoard[right].pieceVal) {
+          newBoard[right] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        }
+      }
     } else if (left == chosenIndex) {
       if (newBoard[left].pieceVal == 15) {
         newBoard[left] = TileType(
@@ -163,7 +200,29 @@ class PlayerController extends Cubit<Player> {
           newBoard[state.mCurrSelectedPiece].type,
         );
         goodMove = true;
-      } //else if (newBoard[left].type == 2) {}
+      } else if (newBoard[left].type == opID) {
+        if (newBoard[left].pieceVal == 13) {
+          endGame();
+          return;
+        } else if (newBoard[left].pieceVal == 12) {
+          newBoard[left] = TileType(0, 0);
+          goodMove = true;
+        } else if (newBoard[left].pieceVal == 10 &&
+            newBoard[state.mCurrSelectedPiece].pieceVal == 1) {
+          newBoard[left] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        } else if (newBoard[state.mCurrSelectedPiece].pieceVal >=
+            newBoard[left].pieceVal) {
+          newBoard[left] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        }
+      }
     } else if (below == chosenIndex) {
       if (newBoard[below].pieceVal == 15) {
         newBoard[below] = TileType(
@@ -171,7 +230,29 @@ class PlayerController extends Cubit<Player> {
           newBoard[state.mCurrSelectedPiece].type,
         );
         goodMove = true;
-      } //else if (newBoard[below].type == 2) {}
+      } else if (newBoard[below].type == opID) {
+        if (newBoard[below].pieceVal == 13) {
+          endGame();
+          return;
+        } else if (newBoard[below].pieceVal == 12) {
+          newBoard[below] = TileType(0, 0);
+          goodMove = true;
+        } else if (newBoard[below].pieceVal == 10 &&
+            newBoard[state.mCurrSelectedPiece].pieceVal == 1) {
+          newBoard[below] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        } else if (newBoard[state.mCurrSelectedPiece].pieceVal >=
+            newBoard[below].pieceVal) {
+          newBoard[below] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        }
+      }
     } else if (above == chosenIndex) {
       if (newBoard[above].pieceVal == 15) {
         newBoard[above] = TileType(
@@ -179,7 +260,29 @@ class PlayerController extends Cubit<Player> {
           newBoard[state.mCurrSelectedPiece].type,
         );
         goodMove = true;
-      } //else if (newBoard[above].type == 2) {}
+      } else if (newBoard[above].type == opID) {
+        if (newBoard[above].pieceVal == 13) {
+          endGame();
+          return;
+        } else if (newBoard[above].pieceVal == 12) {
+          newBoard[above] = TileType(0, 0);
+          goodMove = true;
+        } else if (newBoard[above].pieceVal == 10 &&
+            newBoard[state.mCurrSelectedPiece].pieceVal == 1) {
+          newBoard[above] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        } else if (newBoard[state.mCurrSelectedPiece].pieceVal >=
+            newBoard[above].pieceVal) {
+          newBoard[above] = TileType(
+            newBoard[state.mCurrSelectedPiece].pieceVal,
+            newBoard[state.mCurrSelectedPiece].type,
+          );
+          goodMove = true;
+        }
+      }
     }
     if (goodMove) {
       newBoard[state.mCurrSelectedPiece] = TileType(0, 0);
@@ -213,17 +316,17 @@ class PlayerController extends Cubit<Player> {
       final int below = boardIndex + 10;
       final int above = boardIndex - 10;
       if (right % 10 != 0 && heatMapBoard[right].pieceVal == 0) {
-        heatMapBoard[right] = TileType(15, heatMapBoard[right].type);
+        heatMapBoard[right] = TileType(15, 0);
       }
       if (left % 10 != 9 && heatMapBoard[left].pieceVal == 0) {
-        heatMapBoard[left] = TileType(15, heatMapBoard[right].type);
+        heatMapBoard[left] = TileType(15, 0);
       }
       if (below < 100 && heatMapBoard[below].pieceVal == 0) {
-        heatMapBoard[below] = TileType(15, heatMapBoard[right].type);
+        heatMapBoard[below] = TileType(15, 0);
       }
 
       if (above >= 0 && heatMapBoard[above].pieceVal == 0) {
-        heatMapBoard[above] = TileType(15, heatMapBoard[right].type);
+        heatMapBoard[above] = TileType(15, 0);
       }
 
       final newData = GameData(heatMapBoard);
